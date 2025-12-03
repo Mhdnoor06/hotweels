@@ -67,9 +67,10 @@ export async function PUT(request: NextRequest) {
       .limit(1)
       .maybeSingle()
 
+    const existingSettings = existing as { id: string } | null
     let result
 
-    if (!existing) {
+    if (!existingSettings) {
       // Create new settings record if it doesn't exist
       const { data, error } = await supabaseAdmin
         .from('store_settings')
@@ -87,7 +88,7 @@ export async function PUT(request: NextRequest) {
       const { data, error } = await supabaseAdmin
         .from('store_settings')
         .update(cleanUpdateData as never)
-        .eq('id', existing.id)
+        .eq('id', existingSettings.id)
         .select()
         .single()
 
