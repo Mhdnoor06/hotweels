@@ -15,8 +15,8 @@ export default function Footer() {
   const [email, setEmail] = useState("")
   const pathname = usePathname()
 
-  // Hide footer on admin pages
-  if (pathname?.startsWith('/admin')) {
+  // Hide footer on admin pages, login, and signup pages
+  if (pathname?.startsWith('/admin') || pathname === '/login' || pathname === '/signup') {
     return null
   }
 

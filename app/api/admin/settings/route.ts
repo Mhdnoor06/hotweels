@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/database.types'
 
+// Force dynamic to ensure PUT method works
+export const dynamic = 'force-dynamic'
+
 type SettingsUpdate = Database['public']['Tables']['store_settings']['Update']
 
 // GET - Get store settings
