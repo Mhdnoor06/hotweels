@@ -1,57 +1,58 @@
 "use client"
 
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { ProductRevealCard } from "./product-reveal-card"
 import Link from "next/link"
-
-const cars = [
-  {
-    id: 1,
-    name: "Twin Mill III",
-    series: "HW Dream Garage",
-    price: "$12.99",
-    originalPrice: "$19.99",
-    image: "/hw/red-hot-wheels-twin-mill-car.jpg",
-    description: "Iconic dual-engine Hot Wheels design. Features chrome details and premium die-cast construction. A must-have for collectors.",
-    rating: 4.9,
-    reviewCount: 234,
-  },
-  {
-    id: 2,
-    name: "Bone Shaker",
-    series: "HW Legends",
-    price: "$14.99",
-    originalPrice: "$21.99",
-    image: "/hw/black-hot-wheels-bone-shaker-car.jpg",
-    description: "Street rod inspired design with exposed engine and custom paint. Premium Hot Wheels craftsmanship with authentic details.",
-    rating: 4.8,
-    reviewCount: 189,
-  },
-  {
-    id: 3,
-    name: "Deora II",
-    series: "HW Originals",
-    price: "$11.99",
-    originalPrice: "$17.99",
-    image: "/hw/orange-hot-wheels-deora-car.jpg",
-    description: "Futuristic pickup truck design based on the legendary Deora concept. Sleek aerodynamic body with opening features.",
-    rating: 4.7,
-    reviewCount: 156,
-  },
-  {
-    id: 4,
-    name: "Rodger Dodger",
-    series: "HW Muscle Mania",
-    price: "$13.99",
-    originalPrice: "$18.99",
-    image: "/hw/blue-hot-wheels-rodger-dodger-muscle-car.jpg",
-    description: "Classic muscle car styling with powerful stance. Features authentic Hot Wheels Real Riders wheels and premium finish.",
-    rating: 4.8,
-    reviewCount: 198,
-  },
-]
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { getFeaturedProducts } from "@/lib/supabase/products"
+import type { Product } from "@/lib/supabase/database.types"
+import { useCart } from "@/context/cart-context"
+import { useWishlist } from "@/context/wishlist-context"
 
 export default function FeaturedCollection() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const { toggleItem: toggleCart, isInCart } = useCart()
+  const { toggleItem: toggleWishlist, isInWishlist } = useWishlist()
+
+  useEffect(() => {
+    async function fetchFeatured() {
+      try {
+        const data = await getFeaturedProducts(4)
+        setProducts(data)
+      } catch (err) {
+        console.error('Error fetching featured products:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFeatured()
+  }, [])
+
+  // Handle scroll to update active index
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const scrollLeft = scrollContainerRef.current.scrollLeft
+      const cardWidth = scrollContainerRef.current.offsetWidth * 0.85 // 85% of container width
+      const newIndex = Math.round(scrollLeft / cardWidth)
+      setActiveIndex(Math.min(newIndex, products.length - 1))
+    }
+  }
+
+  // Scroll to specific card
+  const scrollToCard = (index: number) => {
+    if (scrollContainerRef.current) {
+      const cardWidth = scrollContainerRef.current.offsetWidth * 0.85
+      scrollContainerRef.current.scrollTo({
+        left: index * cardWidth,
+        behavior: 'smooth'
+      })
+    }
+  }
   return (
     <section className="bg-gradient-to-b from-white to-gray-50 py-20 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Subtle grid pattern */}
@@ -84,34 +85,129 @@ export default function FeaturedCollection() {
           </p>
         </motion.div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 lg:gap-8 justify-items-center">
-          {cars.map((car, index) => (
-            <motion.div
-              key={car.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{
-                duration: 0.5,
-                ease: "easeOut",
-                delay: index * 0.1,
-              }}
-            >
-              <ProductRevealCard
-                name={car.name}
-                price={car.price}
-                originalPrice={car.originalPrice}
-                image={car.image}
-                description={car.description}
-                rating={car.rating}
-                reviewCount={car.reviewCount}
-                onAdd={() => console.log(`Added ${car.name} to cart`)}
-                onFavorite={() => console.log(`Favorited ${car.name}`)}
-              />
-            </motion.div>
-          ))}
-        </div>
+        {/* Product Grid / Carousel */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-gray-500">No featured products available</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Swipable Carousel */}
+            <div className="sm:hidden relative">
+              {/* Navigation Arrows */}
+              {activeIndex > 0 && (
+                <button
+                  onClick={() => scrollToCard(activeIndex - 1)}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center text-gray-700 hover:bg-white"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+              )}
+              {activeIndex < products.length - 1 && (
+                <button
+                  onClick={() => scrollToCard(activeIndex + 1)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center text-gray-700 hover:bg-white"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              )}
+
+              {/* Scrollable Container */}
+              <div
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+                className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 -mx-4 px-4"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {products.map((product, index) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className="flex-shrink-0 w-[85%] snap-center"
+                  >
+                    <ProductRevealCard
+                      name={product.name}
+                      price={`₹${product.price.toFixed(2)}`}
+                      originalPrice={`₹${(product.price * 1.3).toFixed(2)}`}
+                      image={product.image || "/placeholder.png"}
+                      description={product.description || `${product.name} from the ${product.series} series.`}
+                      rating={product.rating}
+                      reviewCount={product.review_count}
+                      series={product.series}
+                      year={product.year}
+                      color={product.color}
+                      rarity={product.rarity}
+                      productId={product.id}
+                      stock={product.stock}
+                      isFavorite={isInWishlist(product.id)}
+                      isInCart={isInCart(product.id)}
+                      onAdd={() => toggleCart(product)}
+                      onFavorite={() => toggleWishlist(product)}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Pagination Dots */}
+              <div className="flex justify-center gap-2 mt-4">
+                {products.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => scrollToCard(index)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === activeIndex
+                        ? 'w-6 bg-orange-500'
+                        : 'bg-gray-300 hover:bg-gray-400'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop Grid */}
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 lg:gap-8 justify-items-center">
+              {products.map((product, index) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{
+                    duration: 0.5,
+                    ease: "easeOut",
+                    delay: index * 0.1,
+                  }}
+                >
+                  <ProductRevealCard
+                    name={product.name}
+                    price={`₹${product.price.toFixed(2)}`}
+                    originalPrice={`₹${(product.price * 1.3).toFixed(2)}`}
+                    image={product.image || "/placeholder.png"}
+                    description={product.description || `${product.name} from the ${product.series} series.`}
+                    rating={product.rating}
+                    reviewCount={product.review_count}
+                    series={product.series}
+                    year={product.year}
+                    color={product.color}
+                    rarity={product.rarity}
+                    productId={product.id}
+                    stock={product.stock}
+                    isFavorite={isInWishlist(product.id)}
+                    isInCart={isInCart(product.id)}
+                    onAdd={() => toggleCart(product)}
+                    onFavorite={() => toggleWishlist(product)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* View All Button */}
         <motion.div

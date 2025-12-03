@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  Settings,
   Flame,
   LogOut,
   Menu,
@@ -18,96 +19,15 @@ import {
   Edit2,
   Trash2,
   ChevronDown,
+  Loader2,
 } from "lucide-react"
-
-// Products data
-const initialProducts = [
-  {
-    id: 1,
-    name: "Twin Mill III",
-    series: "HW Dream Garage",
-    price: 12.99,
-    year: 2024,
-    rarity: "Common",
-    stock: 45,
-    image: "/hw/red-hot-wheels-twin-mill-car.jpg",
-  },
-  {
-    id: 2,
-    name: "Bone Shaker",
-    series: "HW Legends",
-    price: 14.99,
-    year: 2024,
-    rarity: "Rare",
-    stock: 23,
-    image: "/hw/black-hot-wheels-bone-shaker-car.jpg",
-  },
-  {
-    id: 3,
-    name: "Deora II",
-    series: "HW Originals",
-    price: 11.99,
-    year: 2023,
-    rarity: "Common",
-    stock: 67,
-    image: "/hw/orange-hot-wheels-deora-car.jpg",
-  },
-  {
-    id: 4,
-    name: "Rodger Dodger",
-    series: "HW Muscle Mania",
-    price: 13.99,
-    year: 2024,
-    rarity: "Uncommon",
-    stock: 34,
-    image: "/hw/blue-hot-wheels-rodger-dodger-muscle-car.jpg",
-  },
-  {
-    id: 5,
-    name: "Volkswagen Beetle",
-    series: "HW Classics",
-    price: 9.99,
-    year: 2023,
-    rarity: "Common",
-    stock: 89,
-    image: "/hw/yellow-hot-wheels-volkswagen-beetle.jpg",
-  },
-  {
-    id: 6,
-    name: "Porsche 911 GT3",
-    series: "HW Exotics",
-    price: 16.99,
-    year: 2024,
-    rarity: "Rare",
-    stock: 12,
-    image: "/hw/white-hot-wheels-porsche-911-gt3.jpg",
-  },
-  {
-    id: 7,
-    name: "Ford Mustang Boss",
-    series: "HW Muscle Mania",
-    price: 12.99,
-    year: 2024,
-    rarity: "Uncommon",
-    stock: 56,
-    image: "/hw/green-hot-wheels-ford-mustang-boss.jpg",
-  },
-  {
-    id: 8,
-    name: "Corvette C8",
-    series: "HW Exotics",
-    price: 15.99,
-    year: 2024,
-    rarity: "Rare",
-    stock: 8,
-    image: "/hw/red-hot-wheels-corvette-c8.jpg",
-  },
-]
+import type { Product } from "@/lib/supabase/database.types"
 
 const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
 const seriesOptions = [
@@ -130,8 +50,10 @@ export function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState("")
   const [seriesFilter, setSeriesFilter] = useState("All Series")
   const [rarityFilter, setRarityFilter] = useState("All Rarities")
-  const [products, setProducts] = useState(initialProducts)
-  const [deleteModal, setDeleteModal] = useState<number | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [deleteModal, setDeleteModal] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     const isAuth = localStorage.getItem("hw_admin_auth")
@@ -139,6 +61,25 @@ export function AdminProducts() {
       router.push("/admin")
     }
   }, [router])
+
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true)
+      try {
+        const response = await fetch('/api/admin/products')
+        const data = await response.json()
+        if (Array.isArray(data)) {
+          setProducts(data)
+        }
+      } catch (err) {
+        console.error('Error fetching products:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem("hw_admin_auth")
@@ -154,9 +95,21 @@ export function AdminProducts() {
     return matchesSearch && matchesSeries && matchesRarity
   })
 
-  const handleDelete = (id: number) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id))
-    setDeleteModal(null)
+  const handleDelete = async (id: string) => {
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/admin/products/${id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        setProducts((prev) => prev.filter((p) => p.id !== id))
+        setDeleteModal(null)
+      }
+    } catch (err) {
+      console.error('Error deleting product:', err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const getRarityColor = (rarity: string) => {
@@ -252,23 +205,23 @@ export function AdminProducts() {
 
         <main className="flex-1 p-4 lg:p-8">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="w-full bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+                className="w-full bg-white border border-gray-200 rounded-xl pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 text-sm sm:text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
               />
             </div>
-            <div className="flex gap-3">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <div className="relative flex-1">
                 <select
                   value={seriesFilter}
                   onChange={(e) => setSeriesFilter(e.target.value)}
-                  className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
+                  className="appearance-none w-full bg-white border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 pr-8 sm:pr-10 text-gray-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
                 >
                   {seriesOptions.map((s) => (
                     <option key={s} value={s}>
@@ -276,13 +229,13 @@ export function AdminProducts() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400 pointer-events-none" />
               </div>
-              <div className="relative">
+              <div className="relative flex-1">
                 <select
                   value={rarityFilter}
                   onChange={(e) => setRarityFilter(e.target.value)}
-                  className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
+                  className="appearance-none w-full bg-white border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 pr-8 sm:pr-10 text-gray-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
                 >
                   {rarityOptions.map((r) => (
                     <option key={r} value={r}>
@@ -290,13 +243,18 @@ export function AdminProducts() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400 pointer-events-none" />
               </div>
             </div>
           </div>
 
           {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+            </div>
+          ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             {filteredProducts.map((product, index) => {
               const stockStatus = getStockStatus(product.stock)
               return (
@@ -310,40 +268,40 @@ export function AdminProducts() {
                   {/* Image */}
                   <div className="relative aspect-square bg-gray-50">
                     <Image
-                      src={product.image || "/placeholder.svg"}
+                      src={product.image || "/placeholder.png"}
                       alt={product.name}
                       fill
-                      className="object-contain p-4"
+                      className="object-contain p-3 sm:p-4"
                     />
                     {/* Actions overlay */}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <Link
                         href={`/admin/products/${product.id}`}
-                        className="p-3 bg-white hover:bg-gray-100 rounded-xl text-gray-700 transition-colors"
+                        className="p-2.5 sm:p-3 bg-white hover:bg-gray-100 rounded-xl text-gray-700 transition-colors"
                       >
-                        <Edit2 size={18} />
+                        <Edit2 size={16} className="sm:w-[18px] sm:h-[18px]" />
                       </Link>
                       <button
                         onClick={() => setDeleteModal(product.id)}
-                        className="p-3 bg-white hover:bg-red-50 rounded-xl text-red-500 transition-colors"
+                        className="p-2.5 sm:p-3 bg-white hover:bg-red-50 rounded-xl text-red-500 transition-colors"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
                       </button>
                     </div>
                   </div>
 
                   {/* Info */}
-                  <div className="p-4 border-t border-gray-100">
+                  <div className="p-3 sm:p-4 border-t border-gray-100">
                     <div className="flex items-center justify-between mb-1">
                       <span className={`text-xs font-medium ${getRarityColor(product.rarity)}`}>{product.rarity}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${stockStatus.color}`}>
+                      <span className={`text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${stockStatus.color}`}>
                         {product.stock} units
                       </span>
                     </div>
-                    <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
-                    <p className="text-sm text-gray-500 truncate">{product.series}</p>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                      <span className="text-lg font-bold text-gray-900">${product.price.toFixed(2)}</span>
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 truncate">{product.name}</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">{product.series}</p>
+                    <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100">
+                      <span className="text-base sm:text-lg font-bold text-gray-900">₹{product.price.toFixed(2)}</span>
                       <span className="text-xs text-gray-400">{product.year}</span>
                     </div>
                   </div>
@@ -351,8 +309,9 @@ export function AdminProducts() {
               )
             })}
           </div>
+          )}
 
-          {filteredProducts.length === 0 && (
+          {!loading && filteredProducts.length === 0 && (
             <div className="text-center py-16">
               <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">No products found</p>
@@ -385,15 +344,24 @@ export function AdminProducts() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteModal(null)}
-                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
+                  disabled={deleting}
+                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleDelete(deleteModal)}
-                  className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
+                  disabled={deleting}
+                  className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Delete
+                  {deleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
                 </button>
               </div>
             </motion.div>

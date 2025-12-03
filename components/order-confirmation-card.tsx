@@ -43,7 +43,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       scale: 1,
       transition: {
         duration: 0.4,
-        ease: "easeInOut",
+        ease: "easeInOut" as const,
         staggerChildren: 0.1,
       },
     },
@@ -51,7 +51,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } },
+    visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100 } },
   }
 
   return (

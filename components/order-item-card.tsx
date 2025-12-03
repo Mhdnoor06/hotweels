@@ -1,12 +1,11 @@
 "use client"
 
-import type * as React from "react"
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, type HTMLMotionProps } from "framer-motion"
 import { Minus, Plus, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface OrderItemCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface OrderItemCardProps extends Omit<HTMLMotionProps<"div">, "children"> {
   imageUrl: string
   title: string
   details: string[]
@@ -58,7 +57,7 @@ export function OrderItemCard({
         className="relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100"
         whileHover={{ scale: 1.02 }}
       >
-        <img src={imageUrl || "/placeholder.svg"} alt={imageAlt} className="w-full h-full object-cover" />
+        <img src={imageUrl || "/placeholder.png"} alt={imageAlt} className="w-full h-full object-cover" />
       </motion.div>
 
       {/* Details */}
@@ -69,7 +68,7 @@ export function OrderItemCard({
             {detail}
           </p>
         ))}
-        <p className="text-red-500 font-bold mt-1">${(price * quantity).toFixed(2)}</p>
+        <p className="text-red-500 font-bold mt-1">₹{(price * quantity).toFixed(2)}</p>
       </div>
 
       {/* Quantity Stepper */}

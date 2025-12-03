@@ -236,12 +236,12 @@ export default function HotWheelsHero() {
       const outerRadius = 155
       const textRadius = 110
 
-      const x1 = 200 + innerRadius * Math.cos(radian)
-      const y1 = 200 + innerRadius * Math.sin(radian)
-      const x2 = 200 + outerRadius * Math.cos(radian)
-      const y2 = 200 + outerRadius * Math.sin(radian)
-      const textX = 200 + textRadius * Math.cos(radian)
-      const textY = 200 + textRadius * Math.sin(radian)
+      const x1 = Math.round((200 + innerRadius * Math.cos(radian)) * 100) / 100
+      const y1 = Math.round((200 + innerRadius * Math.sin(radian)) * 100) / 100
+      const x2 = Math.round((200 + outerRadius * Math.cos(radian)) * 100) / 100
+      const y2 = Math.round((200 + outerRadius * Math.sin(radian)) * 100) / 100
+      const textX = Math.round((200 + textRadius * Math.cos(radian)) * 100) / 100
+      const textY = Math.round((200 + textRadius * Math.sin(radian)) * 100) / 100
 
       const isRedZone = speedValue >= 280
 
@@ -291,10 +291,10 @@ export default function HotWheelsHero() {
       const innerRadius = 140
       const outerRadius = 155
 
-      const x1 = 200 + innerRadius * Math.cos(radian)
-      const y1 = 200 + innerRadius * Math.sin(radian)
-      const x2 = 200 + outerRadius * Math.cos(radian)
-      const y2 = 200 + outerRadius * Math.sin(radian)
+      const x1 = Math.round((200 + innerRadius * Math.cos(radian)) * 100) / 100
+      const y1 = Math.round((200 + innerRadius * Math.sin(radian)) * 100) / 100
+      const x2 = Math.round((200 + outerRadius * Math.cos(radian)) * 100) / 100
+      const y2 = Math.round((200 + outerRadius * Math.sin(radian)) * 100) / 100
 
       const isRedZone = speedValue >= 280
 

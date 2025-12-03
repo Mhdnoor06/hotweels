@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
@@ -15,134 +15,15 @@ import {
   Heart,
   ArrowLeft,
   ArrowRight,
-  Flame,
-  Package,
+  Loader2,
+  Check,
 } from "lucide-react"
-import Footer from "./footer"
-
-// Product data
-const allProducts = [
-  {
-    id: 1,
-    name: "Twin Mill III",
-    series: "HW Dream Garage",
-    price: 12.99,
-    year: 2024,
-    color: "Red",
-    rarity: "Common",
-    image: "/hw/red-hot-wheels-twin-mill-car.jpg",
-  },
-  {
-    id: 2,
-    name: "Bone Shaker",
-    series: "HW Legends",
-    price: 14.99,
-    year: 2024,
-    color: "Black",
-    rarity: "Rare",
-    image: "/hw/black-hot-wheels-bone-shaker-car.jpg",
-  },
-  {
-    id: 3,
-    name: "Deora II",
-    series: "HW Originals",
-    price: 11.99,
-    year: 2023,
-    color: "Orange",
-    rarity: "Common",
-    image: "/hw/orange-hot-wheels-deora-car.jpg",
-  },
-  {
-    id: 4,
-    name: "Rodger Dodger",
-    series: "HW Muscle Mania",
-    price: 13.99,
-    year: 2024,
-    color: "Blue",
-    rarity: "Uncommon",
-    image: "/hw/blue-hot-wheels-rodger-dodger-muscle-car.jpg",
-  },
-  {
-    id: 5,
-    name: "Volkswagen Beetle",
-    series: "HW Classics",
-    price: 9.99,
-    year: 2023,
-    color: "Yellow",
-    rarity: "Common",
-    image: "/hw/yellow-hot-wheels-volkswagen-beetle.jpg",
-  },
-  {
-    id: 6,
-    name: "Porsche 911 GT3",
-    series: "HW Exotics",
-    price: 16.99,
-    year: 2024,
-    color: "White",
-    rarity: "Rare",
-    image: "/hw/white-hot-wheels-porsche-911-gt3.jpg",
-  },
-  {
-    id: 7,
-    name: "Ford Mustang Boss",
-    series: "HW Muscle Mania",
-    price: 12.99,
-    year: 2024,
-    color: "Green",
-    rarity: "Uncommon",
-    image: "/hw/green-hot-wheels-ford-mustang-boss.jpg",
-  },
-  {
-    id: 8,
-    name: "Corvette C8",
-    series: "HW Exotics",
-    price: 15.99,
-    year: 2024,
-    color: "Red",
-    rarity: "Rare",
-    image: "/hw/red-hot-wheels-corvette-c8.jpg",
-  },
-  {
-    id: 9,
-    name: "Lamborghini Countach",
-    series: "HW Exotics",
-    price: 18.99,
-    year: 2023,
-    color: "White",
-    rarity: "Super Rare",
-    image: "/hw/white-hot-wheels-lamborghini-countach.jpg",
-  },
-  {
-    id: 10,
-    name: "Custom '67 Camaro",
-    series: "HW Classics",
-    price: 14.99,
-    year: 2024,
-    color: "Blue",
-    rarity: "Uncommon",
-    image: "/hw/blue-hot-wheels-67-camaro-classic.jpg",
-  },
-  {
-    id: 11,
-    name: "Tesla Cybertruck",
-    series: "HW Green Speed",
-    price: 11.99,
-    year: 2024,
-    color: "Silver",
-    rarity: "Common",
-    image: "/hw/silver-hot-wheels-tesla-cybertruck.jpg",
-  },
-  {
-    id: 12,
-    name: "Nissan Skyline GT-R",
-    series: "HW J-Imports",
-    price: 13.99,
-    year: 2023,
-    color: "Blue",
-    rarity: "Rare",
-    image: "/hw/blue-hot-wheels-nissan-skyline-gtr.jpg",
-  },
-]
+import { getProducts, type ProductFilters } from "@/lib/supabase/products"
+import type { Product } from "@/lib/supabase/database.types"
+import { Navbar } from "@/components/navbar"
+import { MobileCartBar } from "@/components/mobile-cart-bar"
+import { useCart } from "@/context/cart-context"
+import { useWishlist } from "@/context/wishlist-context"
 
 const series = [
   "All Series",
@@ -158,6 +39,15 @@ const series = [
 const rarities = ["All Rarities", "Common", "Uncommon", "Rare", "Super Rare"]
 const sortOptions = ["Featured", "Price: Low to High", "Price: High to Low", "Newest", "Name: A-Z"]
 
+// Map UI sort options to API sort options
+const sortMap: Record<string, ProductFilters['sortBy']> = {
+  "Featured": "featured",
+  "Price: Low to High": "price_asc",
+  "Price: High to Low": "price_desc",
+  "Newest": "newest",
+  "Name: A-Z": "name",
+}
+
 export default function CollectionPage() {
   const [filters, setFilters] = useState({
     series: "All Series",
@@ -166,46 +56,44 @@ export default function CollectionPage() {
   const [sortBy, setSortBy] = useState("Featured")
   const [viewMode, setViewMode] = useState<"grid" | "compact">("grid")
   const [currentPage, setCurrentPage] = useState(1)
-  const [wishlist, setWishlist] = useState<number[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const productsPerPage = 8
 
-  // Filter and sort products
-  const filteredProducts = useMemo(() => {
-    let result = [...allProducts]
+  const { toggleItem: toggleCart, isInCart } = useCart()
+  const { toggleItem: toggleWishlist, isInWishlist } = useWishlist()
 
-    if (filters.series !== "All Series") {
-      result = result.filter((p) => p.series === filters.series)
-    }
-    if (filters.rarity !== "All Rarities") {
-      result = result.filter((p) => p.rarity === filters.rarity)
+  // Fetch products from Supabase
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await getProducts({
+          series: filters.series,
+          rarity: filters.rarity,
+          sortBy: sortMap[sortBy],
+        })
+
+        console.log(data)
+        setProducts(data)
+      } catch (err) {
+        setError("Failed to load products. Please try again.")
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
     }
 
-    switch (sortBy) {
-      case "Price: Low to High":
-        result.sort((a, b) => a.price - b.price)
-        break
-      case "Price: High to Low":
-        result.sort((a, b) => b.price - a.price)
-        break
-      case "Newest":
-        result.sort((a, b) => b.year - a.year)
-        break
-      case "Name: A-Z":
-        result.sort((a, b) => a.name.localeCompare(b.name))
-        break
-    }
-
-    return result
+    fetchProducts()
   }, [filters, sortBy])
+
+  // Paginate products
+  const filteredProducts = products
 
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage)
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage)
-
-  const toggleWishlist = (id: number, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setWishlist((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
-  }
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
@@ -222,43 +110,7 @@ export default function CollectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <Flame className="w-6 h-6 text-red-500" />
-              <span className="text-xl font-black tracking-tighter text-gray-900">
-                HOT<span className="text-red-500">WHEELS</span>
-              </span>
-            </Link>
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="/" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                Home
-              </Link>
-              <Link href="/collection" className="text-sm text-gray-900 font-medium">
-                Collection
-              </Link>
-            </nav>
-            <div className="flex items-center gap-2">
-              <Link href="/wishlist" className="relative p-2 text-gray-500 hover:text-gray-900 transition-colors">
-                <Heart size={20} />
-                {wishlist.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
-                    {wishlist.length}
-                  </span>
-                )}
-              </Link>
-              <Link href="/orders" className="relative p-2 text-gray-500 hover:text-gray-900 transition-colors">
-                <Package size={20} />
-              </Link>
-              <button className="relative p-2 text-gray-500 hover:text-gray-900 transition-colors">
-                <ShoppingCart size={20} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
@@ -365,7 +217,21 @@ export default function CollectionPage() {
         </div>
 
         {/* Product Grid */}
-        {paginatedProducts.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-20">
+            <p className="text-red-500">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 text-sm text-red-600 hover:text-red-700"
+            >
+              Try again
+            </button>
+          </div>
+        ) : paginatedProducts.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-500">No cars found</p>
             <button
@@ -381,9 +247,9 @@ export default function CollectionPage() {
         ) : (
           <>
             <div
-              className={`grid gap-4 ${
+              className={`grid gap-3 sm:gap-4 ${
                 viewMode === "grid"
-                  ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                  ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
                   : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
               }`}
             >
@@ -395,63 +261,82 @@ export default function CollectionPage() {
                   transition={{ duration: 0.2, delay: index * 0.03 }}
                   className="group"
                 >
-                  <div className="relative bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all">
+                  <div className="relative bg-white rounded-lg sm:rounded-xl overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all">
                     {/* Image - Clickable to detail page */}
                     <Link href={`/product/${product.id}`}>
                       <div
-                        className={`relative ${viewMode === "grid" ? "aspect-square" : "aspect-[4/3]"} p-4 bg-gray-50 cursor-pointer`}
+                        className={`relative ${viewMode === "grid" ? "aspect-square" : "aspect-[4/3]"} bg-gray-100 cursor-pointer`}
                       >
                         <Image
-                          src={product.image || "/placeholder.svg"}
+                          src={product.image || "/placeholder.png"}
                           alt={product.name}
                           fill
-                          className="object-contain group-hover:scale-105 transition-transform duration-300"
+                          className={`group-hover:scale-105 transition-transform duration-300 ${
+                            product.image ? "object-contain p-2 sm:p-4" : "object-cover"
+                          }`}
                         />
                       </div>
                     </Link>
 
                     {/* Info */}
-                    <div className="p-3 border-t border-gray-100">
+                    <div className="p-2 sm:p-3 border-t border-gray-100">
                       <Link href={`/product/${product.id}`}>
                         <div className="cursor-pointer">
-                          <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-center justify-between gap-1 sm:gap-2 mb-1">
                             <span
-                              className={`text-[10px] font-medium uppercase tracking-wide ${getRarityColor(product.rarity)}`}
+                              className={`text-[9px] sm:text-[10px] font-medium uppercase tracking-wide ${getRarityColor(product.rarity)}`}
                             >
                               {product.rarity}
                             </span>
-                            <span className="text-[10px] text-gray-400">{product.year}</span>
+                            <span className="text-[9px] sm:text-[10px] text-gray-400">{product.year}</span>
                           </div>
-                          <h3 className="font-semibold text-gray-900 text-sm truncate">{product.name}</h3>
-                          <p className="text-[11px] text-gray-500 truncate">{product.series}</p>
+                          <h3 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{product.name}</h3>
+                          <p className="text-[10px] sm:text-[11px] text-gray-500 truncate">{product.series}</p>
                         </div>
                       </Link>
 
-                      <div className="mt-3">
-                        <span className="font-bold text-gray-900 block mb-2">${product.price.toFixed(2)}</span>
+                      <div className="mt-2 sm:mt-3">
+                        <span className="font-bold text-gray-900 text-sm sm:text-base block mb-2">₹{product.price.toFixed(2)}</span>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-1.5 sm:gap-2">
                           <button
                             onClick={(e) => {
                               e.preventDefault()
                               e.stopPropagation()
-                              // Add to cart logic here
+                              toggleCart(product)
                             }}
-                            className="flex-1 px-3 py-2 bg-red-500 rounded-lg text-white text-xs font-medium hover:bg-red-600 transition-colors flex items-center justify-center gap-1.5"
+                            className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium transition-colors flex items-center justify-center gap-1 sm:gap-1.5 ${
+                              isInCart(product.id)
+                                ? "bg-green-500 text-white hover:bg-green-600"
+                                : "bg-red-500 text-white hover:bg-red-600"
+                            }`}
                           >
-                            <ShoppingCart size={14} />
-                            Buy Now
+                            {isInCart(product.id) ? (
+                              <>
+                                <Check size={12} className="sm:w-3.5 sm:h-3.5" />
+                                <span className="hidden xs:inline">Added</span>
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart size={12} className="sm:w-3.5 sm:h-3.5" />
+                                <span className="hidden xs:inline">Add</span>
+                              </>
+                            )}
                           </button>
                           <button
-                            onClick={(e) => toggleWishlist(product.id, e)}
-                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
-                              wishlist.includes(product.id)
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              toggleWishlist(product)
+                            }}
+                            className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium transition-colors flex items-center justify-center ${
+                              isInWishlist(product.id)
                                 ? "bg-red-500 text-white hover:bg-red-600"
                                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                             }`}
                           >
-                            <Heart size={14} fill={wishlist.includes(product.id) ? "currentColor" : "none"} />
+                            <Heart size={14} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
                           </button>
                         </div>
                       </div>
@@ -496,6 +381,12 @@ export default function CollectionPage() {
           </>
         )}
       </main>
+
+      {/* Mobile Cart Bar */}
+      <MobileCartBar />
+
+      {/* Bottom padding for mobile cart bar */}
+      <div className="h-20 sm:hidden" />
     </div>
   )
 }

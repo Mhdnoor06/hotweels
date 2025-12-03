@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { ShoppingCart, Star, Heart } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 interface ProductRevealCardProps {
   name?: string
@@ -14,6 +15,14 @@ interface ProductRevealCardProps {
   description?: string
   rating?: number
   reviewCount?: number
+  series?: string
+  year?: number
+  color?: string
+  rarity?: string
+  productId?: string
+  stock?: number
+  isFavorite?: boolean
+  isInCart?: boolean
   onAdd?: () => void
   onFavorite?: () => void
   enableAnimations?: boolean
@@ -21,26 +30,32 @@ interface ProductRevealCardProps {
 }
 
 export function ProductRevealCard({
-  name = "Premium Wireless Headphones",
-  price = "$199",
-  originalPrice = "$299",
-  image = "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=800&h=600&fit=crop",
-  description = "Experience studio-quality sound with advanced noise cancellation and 30-hour battery life. Perfect for music lovers and professionals.",
+  name = "Hot Wheels Car",
+  price = "₹199",
+  originalPrice = "₹299",
+  image = "/placeholder.png",
+  description = "A premium die-cast collectible from the Hot Wheels collection.",
   rating = 4.8,
   reviewCount = 124,
+  series = "HW Classics",
+  year = 2024,
+  color = "Red",
+  rarity = "Common",
+  productId,
+  stock = 10,
+  isFavorite = false,
+  isInCart = false,
   onAdd,
   onFavorite,
   enableAnimations = true,
   className,
 }: ProductRevealCardProps) {
-  const [isFavorite, setIsFavorite] = useState(false)
   const [isRevealed, setIsRevealed] = useState(false)
   const shouldReduceMotion = useReducedMotion()
   const shouldAnimate = enableAnimations && !shouldReduceMotion
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setIsFavorite(!isFavorite)
     onFavorite?.()
   }
 
@@ -189,7 +204,7 @@ export function ProductRevealCard({
             transition={{ delay: 0.2 }}
             className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-red-500 text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold"
           >
-            {Math.round(((parseFloat(originalPrice.replace('$', '')) - parseFloat(price.replace('$', ''))) / parseFloat(originalPrice.replace('$', ''))) * 100)}% OFF
+            {Math.round(((parseFloat(originalPrice.replace('₹', '')) - parseFloat(price.replace('₹', ''))) / parseFloat(originalPrice.replace('₹', ''))) * 100)}% OFF
           </motion.div>
         )}
       </div>
@@ -252,16 +267,24 @@ export function ProductRevealCard({
             </p>
           </motion.div>
 
-          {/* Features */}
+          {/* Product Specs */}
           <motion.div variants={contentVariants}>
             <div className="grid grid-cols-2 gap-2 sm:gap-3 text-[10px] sm:text-xs">
               <div className="bg-gray-100 rounded-lg p-1.5 sm:p-2 text-center">
-                <div className="font-semibold">30h Battery</div>
-                <div className="text-gray-500">Long-lasting</div>
+                <div className="font-semibold">{series}</div>
+                <div className="text-gray-500">Series</div>
               </div>
               <div className="bg-gray-100 rounded-lg p-1.5 sm:p-2 text-center">
-                <div className="font-semibold">Noise Cancel</div>
-                <div className="text-gray-500">Studio quality</div>
+                <div className="font-semibold">{year}</div>
+                <div className="text-gray-500">Year</div>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-1.5 sm:p-2 text-center">
+                <div className="font-semibold">{color}</div>
+                <div className="text-gray-500">Color</div>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-1.5 sm:p-2 text-center">
+                <div className="font-semibold">{rarity}</div>
+                <div className="text-gray-500">Rarity</div>
               </div>
             </div>
           </motion.div>
@@ -280,28 +303,46 @@ export function ProductRevealCard({
               className={cn(
                 buttonVariants({ variant: "default" }),
                 "w-full h-10 sm:h-12 text-xs sm:text-sm font-medium",
-                "bg-linear-to-r from-gray-900 to-gray-800",
-                "hover:from-gray-800 hover:to-gray-900",
+                isInCart
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-linear-to-r from-gray-900 to-gray-800 hover:from-gray-800 hover:to-gray-900",
                 "shadow-lg shadow-gray-900/25"
               )}
             >
               <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-              Add to Cart
+              {isInCart ? "Added to Cart" : "Add to Cart"}
             </motion.button>
 
-            <motion.button
-              onClick={(e) => e.stopPropagation()}
-              variants={buttonVariants_motion}
-              initial="rest"
-              whileHover="hover"
-              whileTap="tap"
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "w-full h-8 sm:h-10 text-xs sm:text-sm font-medium"
-              )}
-            >
-              View Details
-            </motion.button>
+            {productId ? (
+              <Link href={`/product/${productId}`} onClick={(e) => e.stopPropagation()}>
+                <motion.button
+                  variants={buttonVariants_motion}
+                  initial="rest"
+                  whileHover="hover"
+                  whileTap="tap"
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "w-full h-8 sm:h-10 text-xs sm:text-sm font-medium"
+                  )}
+                >
+                  View Details
+                </motion.button>
+              </Link>
+            ) : (
+              <motion.button
+                onClick={(e) => e.stopPropagation()}
+                variants={buttonVariants_motion}
+                initial="rest"
+                whileHover="hover"
+                whileTap="tap"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "w-full h-8 sm:h-10 text-xs sm:text-sm font-medium"
+                )}
+              >
+                View Details
+              </motion.button>
+            )}
           </motion.div>
         </div>
       </motion.div>

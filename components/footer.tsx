@@ -1,9 +1,9 @@
-
 "use client"
 
 import { motion } from "framer-motion"
 import { ArrowRight, Facebook, Instagram, Twitter, Youtube } from "lucide-react"
 import { useState } from "react"
+import { usePathname } from "next/navigation"
 
 const footerLinks = {
   shop: ["New Arrivals", "Best Sellers", "Limited Editions", "Collector Sets"],
@@ -13,6 +13,12 @@ const footerLinks = {
 
 export default function Footer() {
   const [email, setEmail] = useState("")
+  const pathname = usePathname()
+
+  // Hide footer on admin pages
+  if (pathname?.startsWith('/admin')) {
+    return null
+  }
 
   return (
     <footer className="bg-gray-950 text-white pt-20 pb-8 px-8 relative overflow-hidden">

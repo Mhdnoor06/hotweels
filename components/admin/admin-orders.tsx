@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  Settings,
   Flame,
   LogOut,
   Menu,
@@ -20,77 +21,27 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  Loader2,
+  CreditCard,
+  ImageIcon,
+  BadgeCheck,
+  AlertCircle,
 } from "lucide-react"
+import type { Order, OrderItem } from "@/lib/supabase/database.types"
 
-// Sample orders data
-const ordersData = [
-  {
-    id: "HW-2024-001245",
-    customer: { name: "John Smith", email: "john@email.com" },
-    items: [
-      { name: "Twin Mill III", quantity: 2, price: 12.99, image: "/hw/red-hot-wheels-twin-mill-car.jpg" },
-      { name: "Bone Shaker", quantity: 1, price: 14.99, image: "/hw/black-hot-wheels-bone-shaker-car.jpg" },
-    ],
-    total: 40.97,
-    status: "Processing",
-    date: "Dec 20, 2024",
-    address: "123 Main St, New York, NY 10001",
-  },
-  {
-    id: "HW-2024-001244",
-    customer: { name: "Sarah Johnson", email: "sarah@email.com" },
-    items: [{ name: "Porsche 911 GT3", quantity: 1, price: 16.99, image: "/hw/white-hot-wheels-porsche-911-gt3.jpg" }],
-    total: 16.99,
-    status: "Shipped",
-    date: "Dec 19, 2024",
-    address: "456 Oak Ave, Los Angeles, CA 90001",
-  },
-  {
-    id: "HW-2024-001243",
-    customer: { name: "Mike Wilson", email: "mike@email.com" },
-    items: [
-      { name: "Corvette C8", quantity: 2, price: 15.99, image: "/hw/red-hot-wheels-corvette-c8.jpg" },
-      { name: "Lamborghini Countach", quantity: 1, price: 18.99, image: "/hw/white-hot-wheels-lamborghini-countach.jpg" },
-      { name: "Deora II", quantity: 2, price: 11.99, image: "/hw/orange-hot-wheels-deora-car.jpg" },
-    ],
-    total: 74.95,
-    status: "Delivered",
-    date: "Dec 18, 2024",
-    address: "789 Pine Rd, Chicago, IL 60601",
-  },
-  {
-    id: "HW-2024-001242",
-    customer: { name: "Emily Davis", email: "emily@email.com" },
-    items: [
-      { name: "Volkswagen Beetle", quantity: 1, price: 9.99, image: "/hw/yellow-hot-wheels-volkswagen-beetle.jpg" },
-      { name: "Ford Mustang Boss", quantity: 1, price: 12.99, image: "/hw/green-hot-wheels-ford-mustang-boss.jpg" },
-    ],
-    total: 22.98,
-    status: "Processing",
-    date: "Dec 18, 2024",
-    address: "321 Elm St, Houston, TX 77001",
-  },
-  {
-    id: "HW-2024-001241",
-    customer: { name: "Chris Brown", email: "chris@email.com" },
-    items: [
-      { name: "Nissan Skyline GT-R", quantity: 2, price: 13.99, image: "/hw/blue-hot-wheels-nissan-skyline-gtr.jpg" },
-      { name: "Tesla Cybertruck", quantity: 2, price: 11.99, image: "/hw/silver-hot-wheels-tesla-cybertruck.jpg" },
-    ],
-    total: 51.96,
-    status: "Cancelled",
-    date: "Dec 17, 2024",
-    address: "654 Maple Dr, Phoenix, AZ 85001",
-  },
-]
+type OrderWithItems = Order & {
+  order_items: (OrderItem & { product: { name: string; image: string; series: string } | null })[]
+  user: { name: string | null; email: string } | null
+}
 
 const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
-const statusOptions = ["All", "Processing", "Shipped", "Delivered", "Cancelled"]
+const statusOptions = ["All", "pending", "confirmed", "shipped", "delivered", "cancelled"]
 
 export function AdminOrders() {
   const router = useRouter()
@@ -98,15 +49,36 @@ export function AdminOrders() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
-  const [selectedOrder, setSelectedOrder] = useState<(typeof ordersData)[0] | null>(null)
-  const [orders, setOrders] = useState(ordersData)
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
+  const [orders, setOrders] = useState<OrderWithItems[]>([])
+  const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
+  const [showPaymentScreenshot, setShowPaymentScreenshot] = useState(false)
 
   useEffect(() => {
     const isAuth = localStorage.getItem("hw_admin_auth")
     if (!isAuth) {
       router.push("/admin")
+      return
     }
+
+    fetchOrders()
   }, [router])
+
+  const fetchOrders = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/admin/orders')
+      const data = await response.json()
+      if (Array.isArray(data)) {
+        setOrders(data)
+      }
+    } catch (err) {
+      console.error('Error fetching orders:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("hw_admin_auth")
@@ -116,28 +88,51 @@ export function AdminOrders() {
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer.email.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === "All" || order.status === statusFilter
+      (order.user?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.user?.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesStatus = statusFilter === "All" || order.status === statusFilter.toLowerCase()
     return matchesSearch && matchesStatus
   })
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)))
-    if (selectedOrder?.id === orderId) {
-      setSelectedOrder({ ...selectedOrder, status: newStatus })
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    setUpdating(true)
+    try {
+      const response = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, status: newStatus }),
+      })
+      if (response.ok) {
+        setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status: newStatus.toLowerCase() as OrderWithItems['status'] } : order)))
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus.toLowerCase() as OrderWithItems['status'] })
+        }
+      }
+    } catch (err) {
+      console.error('Error updating order status:', err)
+    } finally {
+      setUpdating(false)
     }
   }
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }
+
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Delivered":
+    switch (status.toLowerCase()) {
+      case "delivered":
         return "text-emerald-600 bg-emerald-50 border-emerald-200"
-      case "Shipped":
+      case "shipped":
         return "text-blue-600 bg-blue-50 border-blue-200"
-      case "Processing":
+      case "pending":
+      case "confirmed":
         return "text-amber-600 bg-amber-50 border-amber-200"
-      case "Cancelled":
+      case "cancelled":
         return "text-red-600 bg-red-50 border-red-200"
       default:
         return "text-gray-600 bg-gray-50 border-gray-200"
@@ -145,17 +140,54 @@ export function AdminOrders() {
   }
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "Delivered":
+    switch (status.toLowerCase()) {
+      case "delivered":
         return CheckCircle
-      case "Shipped":
+      case "shipped":
         return Truck
-      case "Processing":
+      case "pending":
+      case "confirmed":
         return Clock
-      case "Cancelled":
+      case "cancelled":
         return XCircle
       default:
         return Clock
+    }
+  }
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "verified":
+        return "text-emerald-600 bg-emerald-50 border-emerald-200"
+      case "verification_pending":
+        return "text-amber-600 bg-amber-50 border-amber-200"
+      case "cod":
+        return "text-blue-600 bg-blue-50 border-blue-200"
+      case "failed":
+        return "text-red-600 bg-red-50 border-red-200"
+      default:
+        return "text-gray-600 bg-gray-50 border-gray-200"
+    }
+  }
+
+  const updatePaymentStatus = async (orderId: string, newStatus: string) => {
+    setUpdating(true)
+    try {
+      const response = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, payment_status: newStatus }),
+      })
+      if (response.ok) {
+        setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, payment_status: newStatus.toLowerCase() as OrderWithItems['payment_status'] } : order)))
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, payment_status: newStatus.toLowerCase() as OrderWithItems['payment_status'] })
+        }
+      }
+    } catch (err) {
+      console.error('Error updating payment status:', err)
+    } finally {
+      setUpdating(false)
     }
   }
 
@@ -254,6 +286,11 @@ export function AdminOrders() {
           </div>
 
           {/* Orders Table */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+            </div>
+          ) : (
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -271,6 +308,9 @@ export function AdminOrders() {
                     <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4">
                       Total
                     </th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4 hidden lg:table-cell">
+                      Payment
+                    </th>
                     <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4">
                       Status
                     </th>
@@ -281,40 +321,57 @@ export function AdminOrders() {
                 </thead>
                 <tbody>
                   {filteredOrders.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-5 py-4">
-                        <span className="text-sm font-medium text-gray-900">{order.id}</span>
-                        <p className="text-xs text-gray-500 mt-0.5">{order.items.length} items</p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="text-sm text-gray-900">{order.customer.name}</p>
-                        <p className="text-xs text-gray-500">{order.customer.email}</p>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">{order.date}</td>
-                      <td className="px-5 py-4 text-sm font-medium text-gray-900">${order.total.toFixed(2)}</td>
-                      <td className="px-5 py-4">
+                  <tr
+                    key={order.id}
+                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-3 sm:px-5 py-3 sm:py-4">
+                      <span className="text-xs sm:text-sm font-medium text-gray-900">{order.id.slice(0, 8)}...</span>
+                      <p className="text-xs text-gray-500 mt-0.5">{order.order_items?.length || 0} items</p>
+                      <p className="text-xs text-gray-500 sm:hidden mt-0.5">{formatDate(order.created_at)}</p>
+                    </td>
+                    <td className="px-3 sm:px-5 py-3 sm:py-4 hidden sm:table-cell">
+                      <p className="text-xs sm:text-sm text-gray-900">{order.user?.name || 'Guest'}</p>
+                      <p className="text-xs text-gray-500">{order.user?.email || '-'}</p>
+                    </td>
+                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-xs sm:text-sm text-gray-500 hidden md:table-cell">{formatDate(order.created_at)}</td>
+                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-900">₹{order.total.toFixed(2)}</td>
+                    <td className="px-3 sm:px-5 py-3 sm:py-4 hidden lg:table-cell">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-gray-500 uppercase">{order.payment_method || 'cod'}</span>
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit ${getPaymentStatusColor(order.payment_status || 'pending')}`}
                         >
-                          {(() => {
-                            const Icon = getStatusIcon(order.status)
-                            return <Icon size={12} />
-                          })()}
-                          {order.status}
+                          {order.payment_status === 'verification_pending' ? (
+                            <AlertCircle size={10} />
+                          ) : order.payment_status === 'verified' ? (
+                            <BadgeCheck size={10} />
+                          ) : null}
+                          {order.payment_status === 'verification_pending' ? 'Pending' : order.payment_status || 'pending'}
                         </span>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <Eye size={18} />
-                        </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-5 py-3 sm:py-4">
+                      <span
+                        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${getStatusColor(order.status)}`}
+                      >
+                        {(() => {
+                          const Icon = getStatusIcon(order.status)
+                          return <Icon size={10} className="sm:w-3 sm:h-3" />
+                        })()}
+                        <span className="hidden sm:inline">{order.status}</span>
+                        <span className="sm:hidden">{order.status.slice(0, 3)}</span>
+                      </span>
+                    </td>
+                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-right">
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <Eye size={16} className="sm:w-[18px] sm:h-[18px]" />
+                      </button>
+                    </td>
+                  </tr>
                   ))}
                 </tbody>
               </table>
@@ -326,6 +383,7 @@ export function AdminOrders() {
               </div>
             )}
           </div>
+          )}
         </main>
       </div>
 
@@ -344,11 +402,11 @@ export function AdminOrders() {
               initial={{ opacity: 0, x: 300 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-white border-l border-gray-200 z-50 overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 w-full sm:max-w-lg bg-white border-l border-gray-200 z-50 overflow-y-auto"
             >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Order Details</h2>
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Order Details</h2>
                   <button
                     onClick={() => setSelectedOrder(null)}
                     className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -358,85 +416,165 @@ export function AdminOrders() {
                 </div>
 
                 {/* Order ID & Status */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="bg-gray-50 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
                     <div>
-                      <p className="text-sm text-gray-500">Order ID</p>
-                      <p className="text-lg font-semibold text-gray-900">{selectedOrder.id}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Order ID</p>
+                      <p className="text-base sm:text-lg font-semibold text-gray-900 break-all">{selectedOrder.id.slice(0, 8)}...</p>
                     </div>
                     <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border ${getStatusColor(selectedOrder.status)}`}
+                      className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium border capitalize w-fit ${getStatusColor(selectedOrder.status)}`}
                     >
                       {(() => {
                         const Icon = getStatusIcon(selectedOrder.status)
-                        return <Icon size={14} />
+                        return <Icon size={12} className="sm:w-3.5 sm:h-3.5" />
                       })()}
                       {selectedOrder.status}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                     <div>
                       <p className="text-gray-500">Date</p>
-                      <p className="text-gray-900">{selectedOrder.date}</p>
+                      <p className="text-gray-900">{formatDate(selectedOrder.created_at)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Total</p>
-                      <p className="text-gray-900 font-semibold">${selectedOrder.total.toFixed(2)}</p>
+                      <p className="text-gray-900 font-semibold">₹{selectedOrder.total.toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
+
+                {/* Payment Info */}
+                {selectedOrder.payment_method === 'online' && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">Payment Information</h3>
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Method</span>
+                        <span className="text-sm font-medium text-gray-900 uppercase flex items-center gap-1.5">
+                          <CreditCard size={14} />
+                          {selectedOrder.payment_method}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Status</span>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${getPaymentStatusColor(selectedOrder.payment_status || 'pending')}`}>
+                          {selectedOrder.payment_status === 'verification_pending' ? (
+                            <AlertCircle size={12} />
+                          ) : selectedOrder.payment_status === 'verified' ? (
+                            <BadgeCheck size={12} />
+                          ) : null}
+                          {selectedOrder.payment_status === 'verification_pending' ? 'Verification Pending' : selectedOrder.payment_status}
+                        </span>
+                      </div>
+                      {selectedOrder.transaction_id && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500">Transaction ID</span>
+                          <span className="text-sm font-mono font-medium text-gray-900">{selectedOrder.transaction_id}</span>
+                        </div>
+                      )}
+                      {selectedOrder.payment_screenshot && (
+                        <button
+                          onClick={() => setShowPaymentScreenshot(true)}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <ImageIcon size={16} />
+                          View Payment Screenshot
+                        </button>
+                      )}
+
+                      {/* Verify/Reject Payment Buttons */}
+                      {selectedOrder.payment_status === 'verification_pending' && (
+                        <div className="flex gap-2 pt-2 border-t border-gray-200">
+                          <button
+                            onClick={() => updatePaymentStatus(selectedOrder.id, 'verified')}
+                            disabled={updating}
+                            className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            {updating ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />}
+                            Verify Payment
+                          </button>
+                          <button
+                            onClick={() => updatePaymentStatus(selectedOrder.id, 'failed')}
+                            disabled={updating}
+                            className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            {updating ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* COD Payment Info */}
+                {selectedOrder.payment_method === 'cod' && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">Payment Information</h3>
+                    <div className="bg-blue-50 rounded-xl p-4 flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Truck size={20} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">Cash on Delivery</p>
+                        <p className="text-xs text-blue-600">Payment to be collected on delivery</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Customer Info */}
                 <div className="mb-6">
                   <h3 className="text-sm font-medium text-gray-500 mb-3">Customer</h3>
                   <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-gray-900 font-medium">{selectedOrder.customer.name}</p>
-                    <p className="text-gray-500 text-sm">{selectedOrder.customer.email}</p>
-                    <p className="text-gray-500 text-sm mt-2">{selectedOrder.address}</p>
+                    <p className="text-gray-900 font-medium">{selectedOrder.user?.name || 'Guest'}</p>
+                    <p className="text-gray-500 text-sm">{selectedOrder.user?.email || '-'}</p>
+                    <p className="text-gray-500 text-sm mt-2">{(selectedOrder.shipping_address as { address?: string })?.address || 'No address'}</p>
                   </div>
                 </div>
 
                 {/* Order Items */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Items</h3>
-                  <div className="space-y-3">
-                    {selectedOrder.items.map((item, index) => (
-                      <div key={index} className="flex items-center gap-4 bg-gray-50 rounded-xl p-3">
-                        <div className="w-16 h-16 rounded-lg bg-white overflow-hidden flex-shrink-0 border border-gray-200">
+                <div className="mb-4 sm:mb-6">
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-2 sm:mb-3">Items</h3>
+                  <div className="space-y-2 sm:space-y-3">
+                    {selectedOrder.order_items?.map((item, index) => (
+                      <div key={index} className="flex items-center gap-3 sm:gap-4 bg-gray-50 rounded-xl p-2.5 sm:p-3">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-white overflow-hidden shrink-0 border border-gray-200">
                           <Image
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
+                            src={item.product?.image || "/placeholder.png"}
+                            alt={item.product?.name || 'Product'}
                             width={64}
                             height={64}
                             className="w-full h-full object-cover"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-gray-900 font-medium truncate">{item.name}</p>
-                          <p className="text-gray-500 text-sm">Qty: {item.quantity}</p>
+                          <p className="text-xs sm:text-sm text-gray-900 font-medium truncate">{item.product?.name || 'Unknown Product'}</p>
+                          <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                         </div>
-                        <p className="text-gray-900 font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="text-xs sm:text-sm text-gray-900 font-medium shrink-0">₹{(item.price * item.quantity).toFixed(2)}</p>
                       </div>
-                    ))}
+                    )) || <p className="text-xs sm:text-sm text-gray-500 text-center py-4">No items</p>}
                   </div>
                 </div>
 
                 {/* Update Status */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Update Status</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {["Processing", "Shipped", "Delivered", "Cancelled"].map((status) => (
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-2 sm:mb-3">Update Status</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {["pending", "confirmed", "shipped", "delivered", "cancelled"].map((status) => (
                       <button
                         key={status}
                         onClick={() => updateOrderStatus(selectedOrder.id, status)}
-                        disabled={selectedOrder.status === status}
-                        className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                        disabled={selectedOrder.status === status || updating}
+                        className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-colors capitalize ${
                           selectedOrder.status === status
                             ? "bg-red-500 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 disabled:opacity-50"
                         }`}
                       >
-                        {status}
+                        {updating && selectedOrder.status !== status ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin mx-auto" /> : status}
                       </button>
                     ))}
                   </div>
@@ -444,6 +582,79 @@ export function AdminOrders() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Payment Screenshot Modal */}
+      <AnimatePresence>
+        {showPaymentScreenshot && selectedOrder?.payment_screenshot && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-60 flex items-center justify-center p-4"
+            onClick={() => setShowPaymentScreenshot(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative max-w-2xl w-full max-h-[90vh] bg-white rounded-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Payment Screenshot</h3>
+                  <p className="text-sm text-gray-500">Order: {selectedOrder.id.slice(0, 8)}...</p>
+                </div>
+                <button
+                  onClick={() => setShowPaymentScreenshot(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-gray-500" />
+                </button>
+              </div>
+
+              {/* Screenshot */}
+              <div className="relative w-full h-[60vh] bg-gray-100">
+                <Image
+                  src={selectedOrder.payment_screenshot}
+                  alt="Payment Screenshot"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+
+              {/* Footer with actions */}
+              {selectedOrder.payment_status === 'verification_pending' && (
+                <div className="p-4 border-t border-gray-200 flex gap-3">
+                  <button
+                    onClick={() => {
+                      updatePaymentStatus(selectedOrder.id, 'verified')
+                      setShowPaymentScreenshot(false)
+                    }}
+                    disabled={updating}
+                    className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {updating ? <Loader2 size={18} className="animate-spin" /> : <BadgeCheck size={18} />}
+                    Verify Payment
+                  </button>
+                  <button
+                    onClick={() => {
+                      updatePaymentStatus(selectedOrder.id, 'failed')
+                      setShowPaymentScreenshot(false)
+                    }}
+                    disabled={updating}
+                    className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {updating ? <Loader2 size={18} className="animate-spin" /> : <XCircle size={18} />}
+                    Reject Payment
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
