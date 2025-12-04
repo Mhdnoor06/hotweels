@@ -63,7 +63,11 @@ export default function CheckoutPage() {
         const res = await fetch("/api/settings", { cache: 'no-store' })
         if (res.ok) {
           const data = await res.json()
-          setSettings(data.settings)
+          // Handle both formats: {settings: {...}} or direct settings object
+          const settingsData = data.settings || data
+          console.log('Fetched settings at checkout:', settingsData)
+          console.log('Shipping charges amount:', settingsData?.shipping_charges_amount)
+          setSettings(settingsData)
         } else {
           console.error("Failed to fetch settings:", await res.text())
         }
@@ -77,8 +81,13 @@ export default function CheckoutPage() {
   }, [])
 
   const subtotal = getSubtotal()
-  const shipping = subtotal > 500 ? 0 : 50
-  const tax = subtotal * 0.18
+  // Use shipping charges amount from settings (defaults to 50 if not set)
+  // shipping_charges_amount is used for both regular shipping and COD upfront collection
+  const shipping = settings?.shipping_charges_amount && 
+                   typeof settings.shipping_charges_amount === 'number' && 
+                   settings.shipping_charges_amount > 0
+    ? settings.shipping_charges_amount 
+    : 50
   const codCharges = paymentMethod === "cod" && settings?.cod_charges ? settings.cod_charges : 0
   
   // Shipping charges for upfront payment (COD only)
@@ -93,7 +102,18 @@ export default function CheckoutPage() {
     ? (subtotal * settings.discount_percentage) / 100
     : 0
 
-  const total = subtotal + shipping + tax + codCharges - discountAmount
+  // Calculate totals (removed tax)
+  const orderSubtotal = subtotal - discountAmount
+  const orderTotal = orderSubtotal + shipping + codCharges
+  
+  // For COD: total includes shipping charges upfront
+  // Remaining amount to be paid on delivery = orderTotal - shippingChargesUpfront
+  const total = paymentMethod === "cod" && shippingChargesUpfront > 0
+    ? orderTotal // Total includes upfront shipping
+    : orderTotal
+  const codRemainingAmount = paymentMethod === "cod" && shippingChargesUpfront > 0
+    ? orderTotal - shippingChargesUpfront
+    : orderTotal
 
   // Pre-fill email from user
   useEffect(() => {
@@ -197,6 +217,7 @@ export default function CheckoutPage() {
           discount_amount: discountAmount,
           shipping_charges: shippingChargesUpfront > 0 ? shippingChargesUpfront : null,
           shipping_payment_screenshot: shippingScreenshot || shippingPaymentScreenshot || null,
+          shipping_payment_status: shippingChargesUpfront > 0 && (shippingScreenshot || shippingPaymentScreenshot) ? 'pending' : null,
         }),
       })
 
@@ -565,22 +586,31 @@ export default function CheckoutPage() {
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6"
+                            className="bg-white rounded-lg sm:rounded-xl shadow-sm border-2 border-amber-200 p-4 sm:p-6"
                           >
                             <div className="mb-4">
-                              <h3 className="text-base font-bold text-gray-900 mb-2 text-center">
+                              <h3 className="text-lg font-bold text-gray-900 mb-3 text-center flex items-center justify-center gap-2">
+                                <Truck className="w-5 h-5 text-amber-600" />
                                 Pay Shipping Charges
                               </h3>
-                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                                <p className="text-sm text-amber-800">
-                                  <strong>₹{shippingChargesUpfront.toFixed(2)}</strong> shipping charges must be paid upfront for COD orders. 
-                                  The remaining amount will be collected on delivery.
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm text-amber-900 font-medium">Amount to Pay Now:</span>
+                                  <span className="text-lg font-bold text-amber-900">₹{shippingChargesUpfront.toFixed(2)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-amber-700 pt-2 border-t border-amber-200">
+                                  <span>Remaining Amount (Pay on Delivery):</span>
+                                  <span className="font-medium">₹{codRemainingAmount.toFixed(2)}</span>
+                                </div>
+                                <p className="text-xs text-amber-700 mt-3">
+                                  Please complete the shipping payment before placing your order.
                                 </p>
                               </div>
                             </div>
                             <PaymentFlipCard
                               settings={settings}
                               isProcessing={isProcessing}
+                              amount={shippingChargesUpfront}
                               onPaymentComplete={(data) => {
                                 setShippingPaymentScreenshot(data.screenshot)
                                 setShippingPaymentCompleted(true)
@@ -633,7 +663,7 @@ export default function CheckoutPage() {
                 <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4 max-h-48 sm:max-h-60 overflow-y-auto">
                   {items.map((item) => (
                     <div key={item.id} className="flex gap-2 sm:gap-3">
-                      <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-md sm:rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-md sm:rounded-lg overflow-hidden bg-gray-100 shrink-0">
                         <Image src={item.image || "/placeholder.png"} alt={item.name} fill className="object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -684,23 +714,19 @@ export default function CheckoutPage() {
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-green-600">
-                      <span>Discount</span>
+                      <span>Discount ({settings?.discount_percentage}%)</span>
                       <span>-₹{discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shipping</span>
-                    <span>{shipping === 0 ? <span className="text-green-600">Free</span> : `₹${shipping.toFixed(2)}`}</span>
-                  </div>
-                  {paymentMethod === "cod" && shippingChargesUpfront > 0 && (
-                    <div className="flex justify-between text-amber-700">
-                      <span className="font-medium">Shipping Charges (Upfront)</span>
-                      <span className="font-medium">₹{shippingChargesUpfront.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Tax (18% GST)</span>
-                    <span>₹{tax.toFixed(2)}</span>
+                    <span>
+                      {loadingSettings ? (
+                        <span className="text-gray-400 text-xs">Loading...</span>
+                      ) : (
+                        `₹${shipping.toFixed(2)}`
+                      )}
+                    </span>
                   </div>
                   {codCharges > 0 && (
                     <div className="flex justify-between text-amber-600">
@@ -708,9 +734,25 @@ export default function CheckoutPage() {
                       <span>₹{codCharges.toFixed(2)}</span>
                     </div>
                   )}
+                  
+                  {/* Separator for COD with upfront shipping */}
+                  {paymentMethod === "cod" && shippingChargesUpfront > 0 && (
+                    <>
+                      <div className="border-t border-gray-200 pt-2 mt-2"></div>
+                      <div className="flex justify-between font-medium text-amber-700 bg-amber-50 -mx-3 px-3 py-1.5 rounded">
+                        <span>Shipping Charges (Pay Now)</span>
+                        <span>₹{shippingChargesUpfront.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-500 text-xs">
+                        <span>Remaining (Pay on Delivery)</span>
+                        <span>₹{codRemainingAmount.toFixed(2)}</span>
+                      </div>
+                    </>
+                  )}
+                  
                   <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-sm sm:text-base">
-                    <span>Total</span>
-                    <span>₹{total.toFixed(2)}</span>
+                    <span>{paymentMethod === "cod" && shippingChargesUpfront > 0 ? "Total Order Value" : "Total"}</span>
+                    <span>₹{orderTotal.toFixed(2)}</span>
                   </div>
                 </div>
 

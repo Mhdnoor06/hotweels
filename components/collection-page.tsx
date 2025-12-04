@@ -265,15 +265,13 @@ export default function CollectionPage() {
                     {/* Image - Clickable to detail page */}
                     <Link href={`/product/${product.id}`}>
                       <div
-                        className={`relative ${viewMode === "grid" ? "aspect-square" : "aspect-[4/3]"} bg-gray-100 cursor-pointer`}
+                        className={`relative ${viewMode === "grid" ? "aspect-square" : "aspect-[4/3]"} bg-gray-100 cursor-pointer overflow-hidden`}
                       >
                         <Image
                           src={product.image || "/placeholder.png"}
                           alt={product.name}
                           fill
-                          className={`group-hover:scale-105 transition-transform duration-300 ${
-                            product.image ? "object-contain p-2 sm:p-4" : "object-cover"
-                          }`}
+                          className="group-hover:scale-105 transition-transform duration-300 object-cover"
                         />
                       </div>
                     </Link>

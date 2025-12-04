@@ -251,8 +251,8 @@ export function AdminOrders() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30 shrink-0">
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-gray-600">
               <Menu size={24} />
@@ -261,10 +261,10 @@ export function AdminOrders() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8 overflow-x-hidden">
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
@@ -274,11 +274,11 @@ export function AdminOrders() {
                 className="w-full bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
               />
             </div>
-            <div className="relative">
+            <div className="relative shrink-0">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
+                className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer w-full sm:w-auto"
               >
                 {statusOptions.map((status) => (
                   <option key={status} value={status}>
@@ -296,52 +296,62 @@ export function AdminOrders() {
               <Loader2 className="w-8 h-8 animate-spin text-red-500" />
             </div>
           ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-3 sm:px-4 py-3 whitespace-nowrap">
                       Order
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4">
+                    <th scope="col" className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-3 sm:px-4 py-3 whitespace-nowrap hidden sm:table-cell">
                       Customer
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4 hidden md:table-cell">
+                    <th scope="col" className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-3 sm:px-4 py-3 whitespace-nowrap hidden md:table-cell">
                       Date
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4">
+                    <th scope="col" className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-3 sm:px-4 py-3 whitespace-nowrap">
                       Total
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4 hidden lg:table-cell">
+                    <th scope="col" className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-3 sm:px-4 py-3 whitespace-nowrap hidden lg:table-cell">
                       Payment
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4">
+                    <th scope="col" className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-3 sm:px-4 py-3">
                       Status
                     </th>
-                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-4">
+                    <th scope="col" className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-3 sm:px-4 py-3 whitespace-nowrap">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="bg-white divide-y divide-gray-200">
                   {filteredOrders.map((order) => (
                   <tr
                     key={order.id}
-                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                    className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-3 sm:px-5 py-3 sm:py-4">
-                      <span className="text-xs sm:text-sm font-medium text-gray-900">{order.id.slice(0, 8)}...</span>
-                      <p className="text-xs text-gray-500 mt-0.5">{order.order_items?.length || 0} items</p>
-                      <p className="text-xs text-gray-500 sm:hidden mt-0.5">{formatDate(order.created_at)}</p>
+                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
+                      <div className="text-xs sm:text-sm">
+                        <div className="font-medium text-gray-900">{order.id.slice(0, 8)}...</div>
+                        <div className="text-gray-500 mt-0.5">{order.order_items?.length || 0} items</div>
+                        <div className="text-gray-500 sm:hidden mt-0.5">{formatDate(order.created_at)}</div>
+                        <div className="text-gray-500 sm:hidden mt-0.5">{order.user?.name || 'Guest'}</div>
+                      </div>
                     </td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4 hidden sm:table-cell">
-                      <p className="text-xs sm:text-sm text-gray-900">{order.user?.name || 'Guest'}</p>
-                      <p className="text-xs text-gray-500">{order.user?.email || '-'}</p>
+                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
+                      <div className="text-xs sm:text-sm">
+                        <div className="text-gray-900">{order.user?.name || 'Guest'}</div>
+                        <div className="text-gray-500">{order.user?.email || '-'}</div>
+                      </div>
                     </td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-xs sm:text-sm text-gray-500 hidden md:table-cell">{formatDate(order.created_at)}</td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-900">₹{order.total.toFixed(2)}</td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4 hidden lg:table-cell">
+                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden md:table-cell">
+                      {formatDate(order.created_at)}
+                    </td>
+                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
+                      ₹{order.total.toFixed(2)}
+                    </td>
+                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap hidden lg:table-cell">
                       <div className="flex flex-col gap-1">
                         <span className="text-xs text-gray-500 uppercase">{order.payment_method || 'cod'}</span>
                         <span
@@ -356,22 +366,21 @@ export function AdminOrders() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4">
+                    <td className="px-3 sm:px-4 py-3 sm:py-4">
                       <span
-                        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium border capitalize ${getStatusColor(order.status)}`}
+                        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium border capitalize whitespace-nowrap ${getStatusColor(order.status)}`}
                       >
                         {(() => {
                           const Icon = getStatusIcon(order.status)
-                          return <Icon size={10} className="sm:w-3 sm:h-3" />
+                          return <Icon size={10} className="sm:w-3 sm:h-3 shrink-0" />
                         })()}
-                        <span className="hidden sm:inline">{order.status}</span>
-                        <span className="sm:hidden">{order.status.slice(0, 3)}</span>
+                        <span>{order.status}</span>
                       </span>
                     </td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-right">
+                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-right">
                       <button
                         onClick={() => setSelectedOrder(order)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors inline-flex items-center justify-center"
                       >
                         <Eye size={16} className="sm:w-[18px] sm:h-[18px]" />
                       </button>
@@ -380,6 +389,7 @@ export function AdminOrders() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
             {filteredOrders.length === 0 && (

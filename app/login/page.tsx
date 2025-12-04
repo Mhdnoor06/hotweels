@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
 import { Navbar } from "@/components/navbar"
@@ -10,13 +10,24 @@ import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { signIn, isLoading: authLoading } = useAuth()
+  const searchParams = useSearchParams()
+  const { signIn, isLoading: authLoading, user } = useAuth()
+  
+  // Get redirect URL from query params, default to /collection
+  const redirectTo = searchParams.get('redirect') || '/collection'
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push(redirectTo)
+    }
+  }, [user, authLoading, router, redirectTo])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,7 +42,8 @@ export default function LoginPage() {
       return
     }
 
-    router.push("/")
+    // Redirect to the specified page or default to /collection
+    router.push(redirectTo)
     router.refresh()
   }
 
@@ -125,7 +137,7 @@ export default function LoginPage() {
             <div className="mt-4 sm:mt-6 text-center">
               <p className="text-sm sm:text-base text-gray-600">
                 Don&apos;t have an account?{" "}
-                <Link href="/signup" className="text-red-500 hover:text-red-600 font-medium">
+                <Link href={`/signup${redirectTo !== '/collection' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} className="text-red-500 hover:text-red-600 font-medium">
                   Sign up
                 </Link>
               </p>

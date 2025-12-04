@@ -17,7 +17,6 @@ import {
   Loader2,
   Truck,
   Shield,
-  RotateCcw,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -28,7 +27,6 @@ import { Navbar } from "@/components/navbar"
 import { useCart } from "@/context/cart-context"
 import { useWishlist } from "@/context/wishlist-context"
 
-const scaleOptions = ["1:64", "1:43", "1:32", "1:24"]
 const conditionOptions = ["Mint", "Near Mint", "Excellent", "Good"]
 
 export function ProductDetail({ productId }: { productId: string }) {
@@ -36,11 +34,13 @@ export function ProductDetail({ productId }: { productId: string }) {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [settings, setSettings] = useState<{ cod_enabled?: boolean } | null>(null)
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [selectedScale, setSelectedScale] = useState(scaleOptions[0])
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
   const { addItem: addToCart, isInCart } = useCart()
   const { toggleItem: toggleWishlist, isInWishlist } = useWishlist()
@@ -67,6 +67,22 @@ export function ProductDetail({ productId }: { productId: string }) {
     fetchProduct()
   }, [productId])
 
+  // Fetch store settings
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch("/api/settings", { cache: 'no-store' })
+        if (res.ok) {
+          const data = await res.json()
+          setSettings(data.settings)
+        }
+      } catch (err) {
+        console.error("Error fetching settings:", err)
+      }
+    }
+    fetchSettings()
+  }, [])
+
   // Loading state
   if (loading) {
     return (
@@ -88,22 +104,53 @@ export function ProductDetail({ productId }: { productId: string }) {
     )
   }
 
-  // Generate multiple images for carousel
+  // Get images from product - use images array if available, otherwise fall back to single image
   const productImage = product.image || "/placeholder.png"
   const hasImage = !!product.image
-  const images = [productImage, productImage, productImage]
+  const productImages = product.images && product.images.length > 0 ? product.images : (product.image ? [product.image] : [])
+  const images = productImages.length > 0 ? productImages : [productImage]
+  const hasMultipleImages = images.length > 1
 
   const originalPrice = product.price * 1.2
   const discount = Math.round(((originalPrice - product.price) / originalPrice) * 100)
 
-  const nextImage = (e: React.MouseEvent) => {
-    e.stopPropagation()
+  const nextImage = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    if (!hasMultipleImages) return
     setCurrentImageIndex((prev) => (prev + 1) % images.length)
   }
 
-  const prevImage = (e: React.MouseEvent) => {
-    e.stopPropagation()
+  const prevImage = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    if (!hasMultipleImages) return
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
+  }
+
+  // Handle touch swipe events
+  const minSwipeDistance = 50
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd || !hasMultipleImages) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+    
+    if (isLeftSwipe) {
+      nextImage()
+    }
+    if (isRightSwipe) {
+      prevImage()
+    }
   }
 
   const handleAddToCart = () => {
@@ -151,7 +198,12 @@ export function ProductDetail({ productId }: { productId: string }) {
           {/* Image Section - Left on desktop, Top on mobile */}
           <div className="space-y-3 sm:space-y-4">
             <Card className="overflow-hidden border-gray-200 bg-white p-0">
-              <div className="relative aspect-square overflow-hidden bg-gray-50">
+              <div 
+                className="relative aspect-square overflow-hidden bg-gray-50"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentImageIndex}
@@ -171,41 +223,45 @@ export function ProductDetail({ productId }: { productId: string }) {
                   </motion.div>
                 </AnimatePresence>
 
-                {/* Navigation arrows */}
-                <div className="absolute inset-0 flex items-center justify-between p-2 sm:p-4">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-white shadow-sm"
-                    onClick={prevImage}
-                  >
-                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-white shadow-sm"
-                    onClick={nextImage}
-                  >
-                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700" />
-                  </Button>
-                </div>
+                {/* Navigation arrows - only show if multiple images */}
+                {hasMultipleImages && (
+                  <div className="absolute inset-0 flex items-center justify-between p-2 sm:p-4">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-white shadow-sm"
+                      onClick={prevImage}
+                    >
+                      <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-white shadow-sm"
+                      onClick={nextImage}
+                    >
+                      <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700" />
+                    </Button>
+                  </div>
+                )}
 
-                {/* Image indicators */}
-                <div className="absolute bottom-3 sm:bottom-4 left-0 right-0 flex justify-center gap-1.5 sm:gap-2">
-                  {images.map((_, index) => (
-                    <button
-                      key={index}
-                      className={`h-1.5 sm:h-2 rounded-full transition-all ${
-                        index === currentImageIndex ? "w-5 sm:w-6 bg-red-500" : "w-1.5 sm:w-2 bg-gray-300"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setCurrentImageIndex(index)
-                      }}
-                    />
-                  ))}
-                </div>
+                {/* Image indicators - only show if multiple images */}
+                {hasMultipleImages && (
+                  <div className="absolute bottom-3 sm:bottom-4 left-0 right-0 flex justify-center gap-1.5 sm:gap-2">
+                    {images.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`h-1.5 sm:h-2 rounded-full transition-all ${
+                          index === currentImageIndex ? "w-5 sm:w-6 bg-red-500" : "w-1.5 sm:w-2 bg-gray-300"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setCurrentImageIndex(index)
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {/* Badges */}
                 <div className="absolute left-2 sm:left-4 top-2 sm:top-4 flex flex-col gap-1.5 sm:gap-2">
@@ -230,25 +286,27 @@ export function ProductDetail({ productId }: { productId: string }) {
               </div>
             </Card>
 
-            {/* Thumbnail strip */}
-            <div className="flex gap-1.5 sm:gap-2">
-              {images.map((img, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`relative h-14 w-14 sm:h-20 sm:w-20 overflow-hidden rounded-md sm:rounded-lg border-2 transition-all ${
-                    index === currentImageIndex ? "border-red-500" : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <Image
-                    src={img}
-                    alt={`Thumbnail ${index + 1}`}
-                    fill
-                    className={hasImage ? "object-contain" : "object-cover"}
-                  />
-                </button>
-              ))}
-            </div>
+            {/* Thumbnail strip - only show if multiple images exist */}
+            {hasMultipleImages && (
+              <div className="flex gap-1.5 sm:gap-2">
+                {images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`relative h-14 w-14 sm:h-20 sm:w-20 overflow-hidden rounded-md sm:rounded-lg border-2 transition-all ${
+                      index === currentImageIndex ? "border-red-500" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`Thumbnail ${index + 1}`}
+                      fill
+                      className={hasImage ? "object-contain" : "object-cover"}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info - Right on desktop, Bottom on mobile */}
@@ -263,7 +321,9 @@ export function ProductDetail({ productId }: { productId: string }) {
                   <span className="font-medium text-gray-900 text-sm sm:text-base">{product.rating}</span>
                 </div>
                 <span className="text-xs sm:text-sm text-gray-500">({product.review_count} reviews)</span>
-                <span className="text-xs sm:text-sm text-emerald-600">Free shipping</span>
+                {settings?.cod_enabled && (
+                  <span className="text-xs sm:text-sm text-emerald-600">COD Available</span>
+                )}
               </div>
             </div>
 
@@ -277,26 +337,6 @@ export function ProductDetail({ productId }: { productId: string }) {
 
             {/* Description */}
             <p className="text-sm sm:text-base text-gray-600 leading-relaxed">{product.description}</p>
-
-            {/* Scale Selection */}
-            <div className="space-y-2 sm:space-y-3">
-              <div className="text-xs sm:text-sm text-gray-500">Scale</div>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {scaleOptions.map((scale) => (
-                  <button
-                    key={scale}
-                    className={`min-w-[3rem] sm:min-w-[4rem] rounded-md sm:rounded-lg border px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all ${
-                      selectedScale === scale
-                        ? "border-red-500 bg-red-50 text-red-600"
-                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                    }`}
-                    onClick={() => setSelectedScale(scale)}
-                  >
-                    {scale}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Condition Selection */}
             <div className="space-y-2 sm:space-y-3">
@@ -375,18 +415,16 @@ export function ProductDetail({ productId }: { productId: string }) {
             </div>
 
             {/* Features */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 rounded-lg sm:rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
-              <div className="flex flex-col items-center gap-1 sm:gap-2 text-center">
-                <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                <span className="text-[10px] sm:text-xs text-gray-500">Free Shipping</span>
-              </div>
+            <div className={`grid ${settings?.cod_enabled ? 'grid-cols-2' : 'grid-cols-1'} gap-2 sm:gap-4 rounded-lg sm:rounded-xl border border-gray-200 bg-white p-3 sm:p-4`}>
+              {settings?.cod_enabled && (
+                <div className="flex flex-col items-center gap-1 sm:gap-2 text-center">
+                  <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                  <span className="text-[10px] sm:text-xs text-gray-500">COD Available</span>
+                </div>
+              )}
               <div className="flex flex-col items-center gap-1 sm:gap-2 text-center">
                 <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 <span className="text-[10px] sm:text-xs text-gray-500">Authentic</span>
-              </div>
-              <div className="flex flex-col items-center gap-1 sm:gap-2 text-center">
-                <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                <span className="text-[10px] sm:text-xs text-gray-500">30-Day Returns</span>
               </div>
             </div>
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Poppins } from "next/font/google";
 import "./globals.css";
-import Footer from "@/components/footer";
+import { ConditionalFooter } from "@/components/conditional-footer";
 import { Providers } from "@/context/providers";
 
 const geistSans = Inter({
@@ -37,7 +37,7 @@ export default function RootLayout({
       >
         <Providers>
           {children}
-          <Footer />
+          <ConditionalFooter />
         </Providers>
       </body>
     </html>

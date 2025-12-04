@@ -28,6 +28,12 @@ export async function uploadProductImage(file: File): Promise<string | null> {
   return data.publicUrl
 }
 
+export async function uploadProductImages(files: File[]): Promise<string[]> {
+  const uploadPromises = files.map(file => uploadProductImage(file))
+  const urls = await Promise.all(uploadPromises)
+  return urls.filter((url): url is string => url !== null)
+}
+
 export async function deleteProductImage(imageUrl: string): Promise<boolean> {
   // Extract file path from URL
   const urlParts = imageUrl.split(`${BUCKET_NAME}/`)

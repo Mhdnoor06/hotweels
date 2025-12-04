@@ -84,11 +84,13 @@ export function AdminSettings() {
   const fetchSettings = async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/settings", { 
+      // Add timestamp to bust cache at all levels (CDN, browser, Next.js)
+      const res = await fetch(`/api/admin/settings?t=${Date.now()}`, {
         cache: 'no-store',
         credentials: 'include',
         headers: {
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
         }
       })
       if (res.ok) {
@@ -155,14 +157,14 @@ export function AdminSettings() {
         upi_id: settingsToSave.upi_id ?? "",
         cod_enabled: settingsToSave.cod_enabled ?? true,
         online_payment_enabled: settingsToSave.online_payment_enabled ?? true,
-        cod_charges: settingsToSave.cod_charges ?? 0,
+        cod_charges: typeof settingsToSave.cod_charges === 'number' ? Math.round(settingsToSave.cod_charges * 100) / 100 : 0,
         discount_enabled: settingsToSave.discount_enabled ?? false,
-        discount_percentage: settingsToSave.discount_percentage ?? 0,
+        discount_percentage: typeof settingsToSave.discount_percentage === 'number' ? Math.round(settingsToSave.discount_percentage * 100) / 100 : 0,
         discount_code: settingsToSave.discount_code ?? "",
         store_name: settingsToSave.store_name ?? "Hot Wheels Store",
         store_address: settingsToSave.store_address ?? "",
         shipping_charges_collection_enabled: settingsToSave.shipping_charges_collection_enabled ?? false,
-        shipping_charges_amount: settingsToSave.shipping_charges_amount ?? 0,
+        shipping_charges_amount: typeof settingsToSave.shipping_charges_amount === 'number' ? Math.round(settingsToSave.shipping_charges_amount * 100) / 100 : 0,
       }
 
       console.log('Saving settings with payload:', payload)
@@ -494,9 +496,29 @@ export function AdminSettings() {
                         <input
                           type="number"
                           min="0"
-                          value={settings.cod_charges || 0}
-                          onChange={(e) => setSettings((s) => ({ ...s, cod_charges: parseFloat(e.target.value) || 0 }))}
+                          step="0.01"
+                          value={settings.cod_charges ?? ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '' || value === null) {
+                              setSettings((s) => ({ ...s, cod_charges: 0 }))
+                            } else {
+                              const numValue = parseFloat(value)
+                              if (!isNaN(numValue) && numValue >= 0) {
+                                setSettings((s) => ({ ...s, cod_charges: Math.round(numValue * 100) / 100 }))
+                              }
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const value = parseFloat(e.target.value)
+                            if (isNaN(value) || value < 0) {
+                              setSettings((s) => ({ ...s, cod_charges: 0 }))
+                            } else {
+                              setSettings((s) => ({ ...s, cod_charges: Math.round(value * 100) / 100 }))
+                            }
+                          }}
                           className="w-full sm:w-40 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                          placeholder="0.00"
                         />
                       </div>
 
@@ -528,8 +550,26 @@ export function AdminSettings() {
                             type="number"
                             min="0"
                             step="0.01"
-                            value={settings.shipping_charges_amount || 0}
-                            onChange={(e) => setSettings((s) => ({ ...s, shipping_charges_amount: parseFloat(e.target.value) || 0 }))}
+                            value={settings.shipping_charges_amount ?? ''}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              if (value === '' || value === null) {
+                                setSettings((s) => ({ ...s, shipping_charges_amount: 0 }))
+                              } else {
+                                const numValue = parseFloat(value)
+                                if (!isNaN(numValue) && numValue >= 0) {
+                                  setSettings((s) => ({ ...s, shipping_charges_amount: Math.round(numValue * 100) / 100 }))
+                                }
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const value = parseFloat(e.target.value)
+                              if (isNaN(value) || value < 0) {
+                                setSettings((s) => ({ ...s, shipping_charges_amount: 0 }))
+                              } else {
+                                setSettings((s) => ({ ...s, shipping_charges_amount: Math.round(value * 100) / 100 }))
+                              }
+                            }}
                             className="w-full sm:w-40 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
                             placeholder="0.00"
                           />
@@ -655,11 +695,31 @@ export function AdminSettings() {
                           type="number"
                           min="0"
                           max="100"
-                          value={settings.discount_percentage || 0}
-                          onChange={(e) =>
-                            setSettings((s) => ({ ...s, discount_percentage: parseFloat(e.target.value) || 0 }))
-                          }
+                          step="0.01"
+                          value={settings.discount_percentage ?? ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '' || value === null) {
+                              setSettings((s) => ({ ...s, discount_percentage: 0 }))
+                            } else {
+                              const numValue = parseFloat(value)
+                              if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                                setSettings((s) => ({ ...s, discount_percentage: Math.round(numValue * 100) / 100 }))
+                              }
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const value = parseFloat(e.target.value)
+                            if (isNaN(value) || value < 0) {
+                              setSettings((s) => ({ ...s, discount_percentage: 0 }))
+                            } else if (value > 100) {
+                              setSettings((s) => ({ ...s, discount_percentage: 100 }))
+                            } else {
+                              setSettings((s) => ({ ...s, discount_percentage: Math.round(value * 100) / 100 }))
+                            }
+                          }}
                           className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                          placeholder="0.00"
                         />
                       </div>
                       <div>

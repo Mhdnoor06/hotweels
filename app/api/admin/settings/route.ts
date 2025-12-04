@@ -3,8 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/database.types'
 import { verifyAdminAuthFromRequest } from '@/lib/admin-auth'
 
-// Force dynamic to ensure PUT method works
+// Force dynamic to ensure no caching
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 type SettingsUpdate = Database['public']['Tables']['store_settings']['Update']
 
@@ -104,10 +106,16 @@ export async function PUT(request: NextRequest) {
       shipping_charges_collection_enabled: typeof updateData.shipping_charges_collection_enabled === 'boolean' 
         ? updateData.shipping_charges_collection_enabled 
         : updateData.shipping_charges_collection_enabled === 'true' || updateData.shipping_charges_collection_enabled === true,
-      // Ensure numeric fields are numbers
-      cod_charges: typeof updateData.cod_charges === 'number' ? updateData.cod_charges : parseFloat(String(updateData.cod_charges || 0)),
-      discount_percentage: typeof updateData.discount_percentage === 'number' ? updateData.discount_percentage : parseFloat(String(updateData.discount_percentage || 0)),
-      shipping_charges_amount: typeof updateData.shipping_charges_amount === 'number' ? updateData.shipping_charges_amount : parseFloat(String(updateData.shipping_charges_amount || 0)),
+      // Ensure numeric fields are numbers with proper precision (round to 2 decimal places)
+      cod_charges: typeof updateData.cod_charges === 'number' 
+        ? Math.round(updateData.cod_charges * 100) / 100 
+        : Math.round(parseFloat(String(updateData.cod_charges || 0)) * 100) / 100,
+      discount_percentage: typeof updateData.discount_percentage === 'number' 
+        ? Math.round(updateData.discount_percentage * 100) / 100 
+        : Math.round(parseFloat(String(updateData.discount_percentage || 0)) * 100) / 100,
+      shipping_charges_amount: typeof updateData.shipping_charges_amount === 'number' 
+        ? Math.round(updateData.shipping_charges_amount * 100) / 100 
+        : Math.round(parseFloat(String(updateData.shipping_charges_amount || 0)) * 100) / 100,
     }
     
     console.log('Cleaned update data:', cleanUpdateData)

@@ -20,8 +20,10 @@ import {
   Save,
   Check,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
-import { uploadProductImage } from "@/lib/supabase/storage"
+import { uploadProductImage, uploadProductImages } from "@/lib/supabase/storage"
 import type { Product } from "@/lib/supabase/database.types"
 import { useAdminAuth } from "@/context/admin-auth-context"
 
@@ -56,8 +58,10 @@ export function ProductForm({ productId }: ProductFormProps) {
   const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
+  const [existingImages, setExistingImages] = useState<string[]>([])
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [submitStatus, setSubmitStatus] = useState<string>('')
 
@@ -77,6 +81,7 @@ export function ProductForm({ productId }: ProductFormProps) {
     stock: "",
     description: "",
     image: "",
+    images: [] as string[],
     featured: false,
   })
 
@@ -97,6 +102,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         .then(res => res.json())
         .then((product) => {
           if (product && !product.error) {
+            const productImages = product.images || []
             setFormData({
               name: product.name,
               series: product.series,
@@ -107,8 +113,10 @@ export function ProductForm({ productId }: ProductFormProps) {
               stock: product.stock.toString(),
               description: product.description || "",
               image: product.image,
+              images: productImages,
               featured: product.featured || false,
             })
+            setExistingImages(productImages)
             // Check if values are custom (not in predefined options)
             if (!seriesOptions.includes(product.series)) {
               setUseCustomSeries(true)
@@ -135,15 +143,22 @@ export function ProductForm({ productId }: ProductFormProps) {
     setSubmitStatus('')
 
     try {
-      // Upload image first if a new file is selected
+      // Upload images first if new files are selected
       let imageUrl = formData.image
-      if (selectedFile) {
-        setSubmitStatus('Uploading image...')
-        const uploadedUrl = await uploadProductImage(selectedFile)
-        if (uploadedUrl) {
-          imageUrl = uploadedUrl
+      let imagesArray = existingImages.length > 0 ? existingImages : formData.images
+      
+      if (selectedFiles.length > 0) {
+        setSubmitStatus(`Uploading ${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''}...`)
+        const uploadedUrls = await uploadProductImages(selectedFiles)
+        if (uploadedUrls.length > 0) {
+          // Use first uploaded image as main image if no main image exists
+          if (!imageUrl) {
+            imageUrl = uploadedUrls[0]
+          }
+          // Combine existing images with newly uploaded ones (max 4 total)
+          imagesArray = [...existingImages, ...uploadedUrls].slice(0, 4)
         } else {
-          throw new Error('Failed to upload image')
+          throw new Error('Failed to upload images')
         }
       }
 
@@ -159,6 +174,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         stock: parseInt(formData.stock),
         description: formData.description || null,
         image: imageUrl || "",
+        images: imagesArray.length > 0 ? imagesArray : null,
         featured: formData.featured,
         rating: 0,
         review_count: 0,
@@ -204,37 +220,125 @@ export function ProductForm({ productId }: ProductFormProps) {
   }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file')
+    // Check total images count (existing + new selected files)
+    const totalImages = existingImages.length + selectedFiles.length + files.length
+    if (totalImages > 4) {
+      setError(`Maximum 4 images allowed. You can upload ${4 - existingImages.length - selectedFiles.length} more.`)
       return
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image size must be less than 5MB')
-      return
+    // Validate each file
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        setError('Please select only image files')
+        return
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Each image size must be less than 5MB')
+        return
+      }
     }
 
     setError(null)
-    setSelectedFile(file)
+    
+    // Calculate how many new files we can add
+    const availableSlots = 4 - existingImages.length - selectedFiles.length
+    const filesToAdd = files.slice(0, availableSlots)
+    
+    // Add new files to selected files
+    const newFiles = [...selectedFiles, ...filesToAdd]
+    setSelectedFiles(newFiles)
 
-    // Create preview URL
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
+    // Create preview URLs for new files (revoke old ones first)
+    previewUrls.forEach(url => URL.revokeObjectURL(url))
+    const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file))
+    setPreviewUrls(newPreviewUrls)
+    
+    // If this is the first image, set it as current
+    if (existingImages.length === 0 && newFiles.length > 0) {
+      setCurrentImageIndex(0)
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
-  // Cleanup preview URL on unmount
+  const removeSelectedImage = (index: number) => {
+    // Revoke the URL for the removed file
+    if (previewUrls[index]) {
+      URL.revokeObjectURL(previewUrls[index])
+    }
+    
+    const newFiles = selectedFiles.filter((_, i) => i !== index)
+    const newPreviewUrls = previewUrls.filter((_, i) => i !== index)
+    setSelectedFiles(newFiles)
+    setPreviewUrls(newPreviewUrls)
+    
+    // Adjust current index if needed (accounting for existing images offset)
+    const previewIndex = existingImages.length + index
+    if (currentImageIndex >= existingImages.length + newPreviewUrls.length) {
+      setCurrentImageIndex(Math.max(0, existingImages.length + newPreviewUrls.length - 1))
+    } else if (currentImageIndex > previewIndex && currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1)
+    }
+  }
+
+  const removeExistingImage = (index: number) => {
+    const newExisting = existingImages.filter((_, i) => i !== index)
+    setExistingImages(newExisting)
+    setFormData(prev => ({ ...prev, images: newExisting }))
+    // Adjust current index if needed
+    if (currentImageIndex >= newExisting.length + previewUrls.length) {
+      setCurrentImageIndex(Math.max(0, newExisting.length + previewUrls.length - 1))
+    } else if (currentImageIndex > index && currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1)
+    }
+  }
+
+  // Handle touch swipe events
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+
+  const minSwipeDistance = 50
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+    const allImages = [...existingImages, ...previewUrls]
+    
+    if (isLeftSwipe && allImages.length > 1) {
+      setCurrentImageIndex((prev) => (prev < allImages.length - 1 ? prev + 1 : 0))
+    }
+    if (isRightSwipe && allImages.length > 1) {
+      setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : allImages.length - 1))
+    }
+  }
+
+  // Cleanup preview URLs on unmount
   useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-      }
+      previewUrls.forEach(url => URL.revokeObjectURL(url))
     }
-  }, [previewUrl])
+  }, [previewUrls])
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -329,40 +433,183 @@ export function ProductForm({ productId }: ProductFormProps) {
           ) : (
             <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
               <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-                {/* Image Upload */}
+                {/* Images Upload */}
                 <div className="lg:col-span-1">
                   <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 lg:sticky lg:top-24">
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Product Image</label>
-                    <div className="relative aspect-square rounded-xl bg-gray-50 overflow-hidden mb-3 sm:mb-4 border border-gray-200">
-                      <Image
-                        src={previewUrl || formData.image || "/placeholder.png"}
-                        alt="Product preview"
-                        fill
-                        className="object-contain p-3 sm:p-4"
-                      />
-                      {selectedFile && (
-                        <div className="absolute bottom-2 left-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded truncate">
-                          {selectedFile.name}
-                        </div>
-                      )}
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
+                      Product Images ({existingImages.length + selectedFiles.length}/4)
+                    </label>
+                    
+                    {/* Swipeable Image Carousel */}
+                    <div 
+                      className="relative aspect-square rounded-xl bg-gray-50 overflow-hidden mb-3 sm:mb-4 border border-gray-200 group"
+                      onTouchStart={onTouchStart}
+                      onTouchMove={onTouchMove}
+                      onTouchEnd={onTouchEnd}
+                    >
+                      {(() => {
+                        const allImages = [...existingImages, ...previewUrls]
+                        const mainImage = allImages[0] || formData.image || "/placeholder.png"
+                        const hasMultipleImages = allImages.length > 1
+                        
+                        return (
+                          <>
+                            {/* Main Image Display */}
+                            <div className="relative w-full h-full">
+                              {allImages.length > 0 ? (
+                                <Image
+                                  src={allImages[currentImageIndex] || mainImage}
+                                  alt={`Product image ${currentImageIndex + 1}`}
+                                  fill
+                                  className="object-contain p-3 sm:p-4"
+                                />
+                              ) : (
+                                <Image
+                                  src={mainImage}
+                                  alt="Product preview"
+                                  fill
+                                  className="object-contain p-3 sm:p-4"
+                                />
+                              )}
+                              
+                              {/* Remove button overlay */}
+                              {allImages.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (currentImageIndex < existingImages.length) {
+                                      removeExistingImage(currentImageIndex)
+                                    } else {
+                                      const previewIndex = currentImageIndex - existingImages.length
+                                      removeSelectedImage(previewIndex)
+                                    }
+                                  }}
+                                  className="absolute top-2 right-2 p-2 bg-black/60 hover:bg-black/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                >
+                                  <X size={16} />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Navigation Arrows */}
+                            {hasMultipleImages && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : allImages.length - 1))}
+                                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <ChevronLeft size={20} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCurrentImageIndex((prev) => (prev < allImages.length - 1 ? prev + 1 : 0))}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <ChevronRight size={20} />
+                                </button>
+                              </>
+                            )}
+
+                            {/* Dot Indicators */}
+                            {hasMultipleImages && (
+                              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                                {allImages.map((_, index) => (
+                                  <button
+                                    key={index}
+                                    type="button"
+                                    onClick={() => setCurrentImageIndex(index)}
+                                    className={`w-2 h-2 rounded-full transition-all ${
+                                      index === currentImageIndex 
+                                        ? 'bg-white w-6' 
+                                        : 'bg-white/50 hover:bg-white/75'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Touch swipe hint for mobile */}
+                            {hasMultipleImages && (
+                              <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                Swipe or use arrows to navigate
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
+
+                    {/* Thumbnail Strip */}
+                    {(() => {
+                      const allImages = [...existingImages, ...previewUrls]
+                      return allImages.length > 0 ? (
+                        <div className="flex gap-2 mb-3 sm:mb-4 overflow-x-auto overflow-y-visible pb-3 pt-3">
+                          {allImages.map((url, index) => (
+                            <div
+                              key={index}
+                              className="relative shrink-0 group/thumbnail"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => setCurrentImageIndex(index)}
+                                className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                                  index === currentImageIndex 
+                                    ? 'border-red-500 ring-2 ring-red-500/20' 
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <Image
+                                  src={url}
+                                  alt={`Thumbnail ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </button>
+                              {/* Remove icon button - always visible */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (index < existingImages.length) {
+                                    removeExistingImage(index)
+                                  } else {
+                                    const previewIndex = index - existingImages.length
+                                    removeSelectedImage(previewIndex)
+                                  }
+                                }}
+                                className="absolute top-0 right-0 w-5 h-5 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg z-20 transition-all hover:scale-110 transform -translate-y-1/2 translate-x-1/2"
+                                title="Remove image"
+                                aria-label="Remove image"
+                              >
+                                <X size={12} strokeWidth={2.5} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null
+                    })()}
+
                     <input
                       type="file"
                       ref={fileInputRef}
                       onChange={handleImageSelect}
                       accept="image/*"
+                      multiple
                       className="hidden"
                     />
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || (existingImages.length + selectedFiles.length) >= 4}
                       className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 disabled:text-gray-400 rounded-xl transition-colors text-sm"
                     >
                       <Upload size={16} className="sm:w-[18px] sm:h-[18px]" />
-                      {selectedFile ? 'Change Image' : 'Select Image'}
+                      {selectedFiles.length > 0 || existingImages.length > 0 
+                        ? `Add More (${4 - existingImages.length - selectedFiles.length} left)` 
+                        : 'Select Images'}
                     </button>
-                    <p className="text-xs text-gray-500 mt-2 text-center">Max size: 5MB (uploads on save)</p>
+                    <p className="text-xs text-gray-500 mt-2 text-center">Max 4 images, 5MB each (uploads on save)</p>
                   </div>
                 </div>
 

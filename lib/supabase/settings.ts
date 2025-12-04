@@ -11,6 +11,7 @@ export async function getStoreSettings(): Promise<StoreSettings | null> {
 
   if (error) {
     console.error('Error fetching store settings:', error)
+    console.error('Error details:', error.message, error.details, error.hint)
     return null
   }
 
@@ -32,13 +33,28 @@ export async function getStoreSettings(): Promise<StoreSettings | null> {
       store_name: "Hot Wheels Store",
       store_address: "",
       shipping_charges_collection_enabled: false,
-      shipping_charges_amount: 0,
+      shipping_charges_amount: 50, // Default shipping amount
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     } as StoreSettings
   }
 
-  return data
+  // Cast to any to handle missing columns that might not be in the database yet
+  const settingsData = data as any
+  
+  // Only set defaults if the columns are truly missing (undefined), not if they're 0 or have values
+  if (settingsData.shipping_charges_amount === null || settingsData.shipping_charges_amount === undefined) {
+    console.warn('shipping_charges_amount column missing from database, using default 50')
+    settingsData.shipping_charges_amount = 50
+  }
+  if (settingsData.shipping_charges_collection_enabled === null || settingsData.shipping_charges_collection_enabled === undefined) {
+    settingsData.shipping_charges_collection_enabled = false
+  }
+
+  // Log the actual value from database (before any defaults)
+  console.log('Raw database value - shipping_charges_amount:', (data as any)?.shipping_charges_amount)
+  console.log('Final settings - shipping_charges_amount:', settingsData.shipping_charges_amount)
+  return settingsData as StoreSettings
 }
 
 // Update store settings

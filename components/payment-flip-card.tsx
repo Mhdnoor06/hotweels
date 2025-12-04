@@ -10,10 +10,11 @@ interface PaymentFlipCardProps {
   settings: StoreSettings
   onPaymentComplete?: (data: { transactionId: string; screenshot: string }) => void
   isProcessing?: boolean
+  amount?: number // Optional amount to display (for shipping charges)
 }
 
-export function PaymentFlipCard({ settings, onPaymentComplete, isProcessing }: PaymentFlipCardProps) {
-  const [isFlipped, setIsFlipped] = useState(false)
+export function PaymentFlipCard({ settings, onPaymentComplete, isProcessing, amount }: PaymentFlipCardProps) {
+  const [isFlipped, setIsFlipped] = useState(true) // Start with QR code side shown (flipped)
   const [copiedUPI, setCopiedUPI] = useState(false)
   const [transactionId, setTransactionId] = useState("")
   const [screenshot, setScreenshot] = useState<string | null>(null)
@@ -188,6 +189,11 @@ export function PaymentFlipCard({ settings, onPaymentComplete, isProcessing }: P
                   <QrCode className="w-6 h-6 text-red-500" />
                 </div>
                 <h3 className="text-lg font-bold text-white">Scan & Pay</h3>
+                {amount && (
+                  <div className="mt-2 px-3 py-1.5 bg-white/20 rounded-lg inline-block">
+                    <p className="text-white text-lg font-bold">₹{amount.toFixed(2)}</p>
+                  </div>
+                )}
                 <p className="text-white/80 text-xs mt-1">Use any UPI app to pay</p>
               </div>
 

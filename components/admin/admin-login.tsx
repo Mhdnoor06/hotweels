@@ -7,7 +7,6 @@ import { motion } from "framer-motion"
 import { Eye, EyeOff, Lock, Mail, Flame, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAdminAuth } from "@/context/admin-auth-context"
-import Link from "next/link"
 
 export function AdminLogin() {
   const router = useRouter()
@@ -141,16 +140,6 @@ export function AdminLogin() {
               )}
             </button>
           </form>
-
-          {/* Signup Link - Show if no admin exists */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              No admin account?{" "}
-              <Link href="/admin/signup" className="text-red-500 hover:text-red-600 font-medium">
-                Create admin account
-              </Link>
-            </p>
-          </div>
         </div>
       </motion.div>
     </div>

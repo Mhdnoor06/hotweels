@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
 import { Navbar } from "@/components/navbar"
@@ -10,7 +10,11 @@ import { Eye, EyeOff, Loader2, Mail, Lock, User } from "lucide-react"
 
 export default function SignupPage() {
   const router = useRouter()
-  const { signUp, isLoading: authLoading } = useAuth()
+  const searchParams = useSearchParams()
+  const { signUp, isLoading: authLoading, user } = useAuth()
+  
+  // Get redirect URL from query params, default to /collection
+  const redirectTo = searchParams.get('redirect') || '/collection'
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -49,6 +53,13 @@ export default function SignupPage() {
     setIsLoading(false)
   }
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push(redirectTo)
+    }
+  }, [user, authLoading, router, redirectTo])
+
   if (success) {
     return (
       <>
@@ -73,7 +84,7 @@ export default function SignupPage() {
                 Please check your inbox and click the link to activate your account.
               </p>
               <Link
-                href="/login"
+                href={`/login${redirectTo !== '/collection' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`}
                 className="inline-block py-2.5 sm:py-3 px-5 sm:px-6 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors text-sm sm:text-base"
               >
                 Go to Login
@@ -213,7 +224,7 @@ export default function SignupPage() {
             <div className="mt-4 sm:mt-6 text-center">
               <p className="text-sm sm:text-base text-gray-600">
                 Already have an account?{" "}
-                <Link href="/login" className="text-red-500 hover:text-red-600 font-medium">
+                <Link href={`/login${redirectTo !== '/collection' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} className="text-red-500 hover:text-red-600 font-medium">
                   Sign in
                 </Link>
               </p>

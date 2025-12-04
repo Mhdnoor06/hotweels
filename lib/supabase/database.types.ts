@@ -19,6 +19,7 @@ export interface Database {
           color: string
           rarity: 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Treasure Hunt'
           image: string
+          images: string[] | null
           rating: number
           review_count: number
           description: string | null
@@ -36,6 +37,7 @@ export interface Database {
           color: string
           rarity: 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Treasure Hunt'
           image: string
+          images?: string[] | null
           rating?: number
           review_count?: number
           description?: string | null
@@ -53,6 +55,7 @@ export interface Database {
           color?: string
           rarity?: 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Treasure Hunt'
           image?: string
+          images?: string[] | null
           rating?: number
           review_count?: number
           description?: string | null

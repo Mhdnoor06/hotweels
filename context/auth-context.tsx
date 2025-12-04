@@ -44,6 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signUp = async (email: string, password: string, name: string) => {
+    // Use current origin for email redirect to work in both dev and production
+    const emailRedirectTo = typeof window !== 'undefined'
+      ? `${window.location.origin}/login`
+      : undefined
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -51,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           full_name: name,
         },
+        emailRedirectTo,
       },
     })
 

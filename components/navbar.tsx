@@ -215,7 +215,7 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
                 </div>
               ) : (
                 <Link
-                  href="/login"
+                  href={`/login${pathname && pathname !== '/' && pathname !== '/login' && pathname !== '/signup' ? `?redirect=${encodeURIComponent(pathname)}` : ''}`}
                   className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
                 >
                   <User className="h-4 w-4" />

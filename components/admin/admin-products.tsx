@@ -276,8 +276,8 @@ export function AdminProducts() {
                       fill
                       className="object-contain p-3 sm:p-4"
                     />
-                    {/* Actions overlay */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    {/* Actions overlay - hidden on mobile, shows on hover for desktop */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center justify-center gap-2">
                       <Link
                         href={`/admin/products/${product.id}`}
                         className="p-2.5 sm:p-3 bg-white hover:bg-gray-100 rounded-xl text-gray-700 transition-colors"
@@ -306,6 +306,23 @@ export function AdminProducts() {
                     <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100">
                       <span className="text-base sm:text-lg font-bold text-gray-900">₹{product.price.toFixed(2)}</span>
                       <span className="text-xs text-gray-400">{product.year}</span>
+                    </div>
+                    {/* Mobile action buttons - always visible on mobile */}
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100 sm:hidden">
+                      <Link
+                        href={`/admin/products/${product.id}`}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors"
+                      >
+                        <Edit2 size={14} />
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => setDeleteModal(product.id)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-red-50 hover:bg-red-100 active:bg-red-200 rounded-lg text-red-500 text-sm font-medium transition-colors"
+                      >
+                        <Trash2 size={14} />
+                        Delete
+                      </button>
                     </div>
                   </div>
                 </motion.div>

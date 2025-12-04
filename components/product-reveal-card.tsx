@@ -171,11 +171,11 @@ export function ProductRevealCard({
       )}
     >
       {/* Image Container */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden aspect-square">
         <motion.img
           src={image}
           alt={name}
-          className="h-48 sm:h-56 w-full object-cover"
+          className="h-full w-full object-cover"
           variants={imageVariants}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />

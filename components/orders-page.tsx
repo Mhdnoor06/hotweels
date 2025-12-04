@@ -109,10 +109,10 @@ export function OrdersPage() {
                 Track your order status, view order history, and manage returns all in one place.
               </p>
               <div className="flex gap-2 sm:gap-3">
-                <Link href="/login">
+                <Link href="/login?redirect=/orders">
                   <Button className="bg-red-500 hover:bg-red-600 text-sm sm:text-base">Sign In</Button>
                 </Link>
-                <Link href="/signup">
+                <Link href="/signup?redirect=/orders">
                   <Button variant="outline" className="text-sm sm:text-base">Create Account</Button>
                 </Link>
               </div>
