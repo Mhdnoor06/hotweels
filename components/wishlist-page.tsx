@@ -38,6 +38,7 @@ export function WishlistPage() {
       series: item.series,
       price: item.price,
       image: item.image,
+      images: item.image ? [item.image] : null,
       color: item.color,
       rarity: item.rarity as Product['rarity'],
       year: item.year,
