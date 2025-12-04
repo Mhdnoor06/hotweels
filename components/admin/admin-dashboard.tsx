@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
+import { useAdminAuth } from "@/context/admin-auth-context"
 import {
   LayoutDashboard,
   Package,
@@ -49,6 +50,7 @@ type TopProduct = {
 export function AdminDashboard() {
   const router = useRouter()
   const pathname = usePathname()
+  const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<Stats | null>(null)
@@ -56,8 +58,9 @@ export function AdminDashboard() {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([])
 
   useEffect(() => {
-    const isAuth = localStorage.getItem("hw_admin_auth")
-    if (!isAuth) {
+    if (authLoading) return
+    
+    if (!isAuthenticated) {
       router.push("/admin")
       return
     }
@@ -66,9 +69,9 @@ export function AdminDashboard() {
       setLoading(true)
       try {
         const [statsRes, ordersRes, productsRes] = await Promise.all([
-          fetch('/api/admin/dashboard?type=stats'),
-          fetch('/api/admin/dashboard?type=recent-orders&limit=5'),
-          fetch('/api/admin/dashboard?type=top-products&limit=5'),
+          fetch('/api/admin/dashboard?type=stats', { credentials: 'include' }),
+          fetch('/api/admin/dashboard?type=recent-orders&limit=5', { credentials: 'include' }),
+          fetch('/api/admin/dashboard?type=top-products&limit=5', { credentials: 'include' }),
         ])
 
         const [statsData, ordersData, productsData] = await Promise.all([
@@ -88,10 +91,10 @@ export function AdminDashboard() {
     }
 
     fetchDashboardData()
-  }, [router])
+  }, [router, isAuthenticated, authLoading])
 
-  const handleLogout = () => {
-    localStorage.removeItem("hw_admin_auth")
+  const handleLogout = async () => {
+    await logout()
     router.push("/admin")
   }
 

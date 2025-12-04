@@ -1,11 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/database.types'
+import { verifyAdminAuthFromRequest } from '@/lib/admin-auth'
 
 type ProductInsert = Database['public']['Tables']['products']['Insert']
 
+// Helper to verify admin authentication
+async function verifyAdminAuth(request: NextRequest): Promise<NextResponse | null> {
+  const verification = await verifyAdminAuthFromRequest(request)
+  
+  if (!verification.isAdmin) {
+    return NextResponse.json(
+      { error: 'Unauthorized. Admin privileges required.' },
+      { status: 401 }
+    )
+  }
+
+  return null
+}
+
 // GET - List all products
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
   const { data, error } = await supabaseAdmin
     .from('products')
     .select('*')
@@ -20,6 +38,10 @@ export async function GET() {
 
 // POST - Create a new product
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
+
   try {
     const body: ProductInsert = await request.json()
 

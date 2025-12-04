@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { verifyAdminAuthFromRequest } from '@/lib/admin-auth'
+
+// Helper to verify admin authentication
+async function verifyAdminAuth(request: NextRequest): Promise<NextResponse | null> {
+  const verification = await verifyAdminAuthFromRequest(request)
+  
+  if (!verification.isAdmin) {
+    return NextResponse.json(
+      { error: 'Unauthorized. Admin privileges required.' },
+      { status: 401 }
+    )
+  }
+
+  return null
+}
 
 // GET - Get dashboard statistics
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
+
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type') || 'stats'
 

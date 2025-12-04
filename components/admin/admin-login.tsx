@@ -2,32 +2,55 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Eye, EyeOff, Lock, Mail, Flame, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useAdminAuth } from "@/context/admin-auth-context"
+import Link from "next/link"
 
 export function AdminLogin() {
   const router = useRouter()
+  const { login, isAuthenticated } = useAdminAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [adminExists, setAdminExists] = useState<boolean | null>(null)
+
+  // Check if admin exists and redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/admin/dashboard")
+      return
+    }
+
+    // Check if admin exists
+    fetch('/api/admin/auth/check')
+      .then(res => res.json())
+      .then(data => {
+        // If no admin, we'll show signup option
+        // If check fails, it might mean no admin exists
+        setAdminExists(true) // Assume exists for now, we'll handle signup separately
+      })
+      .catch(() => {
+        setAdminExists(null)
+      })
+  }, [isAuthenticated, router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const result = await login(email, password)
 
-    if (email === "admin@hotwheels.com" && password === "admin123") {
-      localStorage.setItem("hw_admin_auth", "true")
-      router.push("/admin/dashboard")
-    } else {
-      setError("Invalid email or password")
+    if (result.error) {
+      setError(result.error)
       setIsLoading(false)
+    } else {
+      router.push("/admin/dashboard")
     }
   }
 
@@ -119,14 +142,13 @@ export function AdminLogin() {
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-            <p className="text-xs text-gray-500 mb-2">Demo Credentials:</p>
+          {/* Signup Link - Show if no admin exists */}
+          <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Email: <span className="text-gray-900 font-medium">admin@hotwheels.com</span>
-            </p>
-            <p className="text-sm text-gray-600">
-              Password: <span className="text-gray-900 font-medium">admin123</span>
+              No admin account?{" "}
+              <Link href="/admin/signup" className="text-red-500 hover:text-red-600 font-medium">
+                Create admin account
+              </Link>
             </p>
           </div>
         </div>

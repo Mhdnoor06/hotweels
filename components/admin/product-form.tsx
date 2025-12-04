@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { uploadProductImage } from "@/lib/supabase/storage"
 import type { Product } from "@/lib/supabase/database.types"
+import { useAdminAuth } from "@/context/admin-auth-context"
 
 const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -79,9 +80,12 @@ export function ProductForm({ productId }: ProductFormProps) {
     featured: false,
   })
 
+  const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth()
+
   useEffect(() => {
-    const isAuth = localStorage.getItem("hw_admin_auth")
-    if (!isAuth) {
+    if (authLoading) return
+    
+    if (!isAuthenticated) {
       router.push("/admin")
       return
     }
@@ -89,7 +93,7 @@ export function ProductForm({ productId }: ProductFormProps) {
     // If editing, load product data via API
     if (isEditing && productId) {
       setLoading(true)
-      fetch(`/api/admin/products/${productId}`)
+      fetch(`/api/admin/products/${productId}`, { credentials: 'include' })
         .then(res => res.json())
         .then((product) => {
           if (product && !product.error) {
@@ -119,8 +123,8 @@ export function ProductForm({ productId }: ProductFormProps) {
     }
   }, [router, isEditing, productId])
 
-  const handleLogout = () => {
-    localStorage.removeItem("hw_admin_auth")
+  const handleLogout = async () => {
+    await logout()
     router.push("/admin")
   }
 
@@ -167,6 +171,7 @@ export function ProductForm({ productId }: ProductFormProps) {
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(productData),
       })
 

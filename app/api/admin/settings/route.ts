@@ -1,14 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/database.types'
+import { verifyAdminAuthFromRequest } from '@/lib/admin-auth'
 
 // Force dynamic to ensure PUT method works
 export const dynamic = 'force-dynamic'
 
 type SettingsUpdate = Database['public']['Tables']['store_settings']['Update']
 
-// GET - Get store settings
-export async function GET() {
+// Helper to verify admin authentication
+async function verifyAdminAuth(request: NextRequest): Promise<NextResponse | null> {
+  const verification = await verifyAdminAuthFromRequest(request)
+  
+  if (!verification.isAdmin) {
+    return NextResponse.json(
+      { error: 'Unauthorized. Admin privileges required.' },
+      { status: 401 }
+    )
+  }
+
+  return null
+}
+
+// GET - Get store settings (public read, but we'll still verify for consistency)
+export async function GET(request: NextRequest) {
+  // Settings can be read publicly, but we verify admin for consistency
+  // You can remove this check if you want public access
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
   const { data, error } = await supabaseAdmin
     .from('store_settings')
     .select('*')
@@ -44,6 +63,10 @@ export async function GET() {
 
 // PUT - Update store settings
 export async function PUT(request: NextRequest) {
+  // Verify admin authentication
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
+
   try {
     const body = await request.json()
 

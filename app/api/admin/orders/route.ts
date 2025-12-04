@@ -1,11 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/database.types'
+import { verifyAdminAuthFromRequest } from '@/lib/admin-auth'
 
 type OrderUpdate = Database['public']['Tables']['orders']['Update']
 
+// Helper to verify admin authentication
+async function verifyAdminAuth(request: NextRequest): Promise<NextResponse | null> {
+  const verification = await verifyAdminAuthFromRequest(request)
+  
+  if (!verification.isAdmin) {
+    return NextResponse.json(
+      { error: 'Unauthorized. Admin privileges required.' },
+      { status: 401 }
+    )
+  }
+
+  return null
+}
+
 // GET - List all orders with items and user info
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
 
@@ -36,6 +54,10 @@ export async function GET(request: NextRequest) {
 
 // PATCH - Update order status or payment status
 export async function PATCH(request: NextRequest) {
+  // Verify admin authentication
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
+
   try {
     const body = await request.json()
     const { orderId, status, payment_status } = body

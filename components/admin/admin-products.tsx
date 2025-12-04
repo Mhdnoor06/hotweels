@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, usePathname } from "next/navigation"
+import { useAdminAuth } from "@/context/admin-auth-context"
 import {
   LayoutDashboard,
   Package,
@@ -46,6 +47,7 @@ const rarityOptions = ["All Rarities", "Common", "Uncommon", "Rare", "Super Rare
 export function AdminProducts() {
   const router = useRouter()
   const pathname = usePathname()
+  const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [seriesFilter, setSeriesFilter] = useState("All Series")
@@ -56,17 +58,17 @@ export function AdminProducts() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    const isAuth = localStorage.getItem("hw_admin_auth")
-    if (!isAuth) {
+    if (authLoading) return
+    
+    if (!isAuthenticated) {
       router.push("/admin")
+      return
     }
-  }, [router])
 
-  useEffect(() => {
     async function fetchProducts() {
       setLoading(true)
       try {
-        const response = await fetch('/api/admin/products')
+        const response = await fetch('/api/admin/products', { credentials: 'include' })
         const data = await response.json()
         if (Array.isArray(data)) {
           setProducts(data)
@@ -79,10 +81,10 @@ export function AdminProducts() {
     }
 
     fetchProducts()
-  }, [])
+  }, [router, isAuthenticated, authLoading])
 
-  const handleLogout = () => {
-    localStorage.removeItem("hw_admin_auth")
+  const handleLogout = async () => {
+    await logout()
     router.push("/admin")
   }
 
@@ -100,6 +102,7 @@ export function AdminProducts() {
     try {
       const response = await fetch(`/api/admin/products/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       if (response.ok) {
         setProducts((prev) => prev.filter((p) => p.id !== id))

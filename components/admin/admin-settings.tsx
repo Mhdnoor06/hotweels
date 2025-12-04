@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, usePathname } from "next/navigation"
+import { useAdminAuth } from "@/context/admin-auth-context"
 import {
   LayoutDashboard,
   Package,
@@ -40,6 +41,7 @@ const navItems = [
 export function AdminSettings() {
   const router = useRouter()
   const pathname = usePathname()
+  const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -67,20 +69,22 @@ export function AdminSettings() {
   })
 
   useEffect(() => {
-    const isAuth = localStorage.getItem("hw_admin_auth")
-    if (!isAuth) {
+    if (authLoading) return
+    
+    if (!isAuthenticated) {
       router.push("/admin")
       return
     }
 
     fetchSettings()
-  }, [router])
+  }, [router, isAuthenticated, authLoading])
 
   const fetchSettings = async () => {
     setLoading(true)
     try {
       const res = await fetch("/api/admin/settings", { 
         cache: 'no-store',
+        credentials: 'include',
         headers: {
           'Cache-Control': 'no-cache'
         }
@@ -155,6 +159,7 @@ export function AdminSettings() {
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(payload),
       })
 
@@ -265,8 +270,8 @@ export function AdminSettings() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem("hw_admin_auth")
+  const handleLogout = async () => {
+    await logout()
     router.push("/admin")
   }
 

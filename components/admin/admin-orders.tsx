@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, usePathname } from "next/navigation"
+import { useAdminAuth } from "@/context/admin-auth-context"
 import {
   LayoutDashboard,
   Package,
@@ -46,6 +47,7 @@ const statusOptions = ["All", "pending", "confirmed", "shipped", "delivered", "c
 export function AdminOrders() {
   const router = useRouter()
   const pathname = usePathname()
+  const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
@@ -56,19 +58,20 @@ export function AdminOrders() {
   const [showPaymentScreenshot, setShowPaymentScreenshot] = useState(false)
 
   useEffect(() => {
-    const isAuth = localStorage.getItem("hw_admin_auth")
-    if (!isAuth) {
+    if (authLoading) return
+    
+    if (!isAuthenticated) {
       router.push("/admin")
       return
     }
 
     fetchOrders()
-  }, [router])
+  }, [router, isAuthenticated, authLoading])
 
   const fetchOrders = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/orders')
+      const response = await fetch('/api/admin/orders', { credentials: 'include' })
       const data = await response.json()
       if (Array.isArray(data)) {
         setOrders(data)
@@ -80,8 +83,8 @@ export function AdminOrders() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem("hw_admin_auth")
+  const handleLogout = async () => {
+    await logout()
     router.push("/admin")
   }
 
@@ -100,6 +103,7 @@ export function AdminOrders() {
       const response = await fetch('/api/admin/orders', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ orderId, status: newStatus }),
       })
       if (response.ok) {
@@ -176,6 +180,7 @@ export function AdminOrders() {
       const response = await fetch('/api/admin/orders', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ orderId, payment_status: newStatus }),
       })
       if (response.ok) {

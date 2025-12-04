@@ -1,14 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/database.types'
+import { verifyAdminAuthFromRequest } from '@/lib/admin-auth'
 
 type ProductUpdate = Database['public']['Tables']['products']['Update']
+
+// Helper to verify admin authentication
+async function verifyAdminAuth(request: NextRequest): Promise<NextResponse | null> {
+  const verification = await verifyAdminAuthFromRequest(request)
+  
+  if (!verification.isAdmin) {
+    return NextResponse.json(
+      { error: 'Unauthorized. Admin privileges required.' },
+      { status: 401 }
+    )
+  }
+
+  return null
+}
 
 // GET - Get a single product
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
+
   const { id } = await params
 
   const { data, error } = await supabaseAdmin
@@ -29,6 +48,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
+
   const { id } = await params
 
   try {
@@ -56,6 +79,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const authError = await verifyAdminAuth(request)
+  if (authError) return authError
+
   const { id } = await params
 
   // First, get the product to retrieve the image URL
