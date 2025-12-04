@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { items, shipping_address, total, payment_method, transaction_id, payment_screenshot, discount_amount } = body
+    const { items, shipping_address, total, payment_method, transaction_id, payment_screenshot, discount_amount, shipping_charges, shipping_payment_screenshot } = body
 
     // Validate input
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -94,6 +94,8 @@ export async function POST(request: Request) {
       transaction_id: transaction_id || undefined,
       payment_screenshot: payment_screenshot || undefined,
       discount_amount: discount_amount || 0,
+      shipping_charges: shipping_charges || undefined,
+      shipping_payment_screenshot: shipping_payment_screenshot || undefined,
     }
 
     const { order, error } = await createOrder(orderInput)

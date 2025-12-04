@@ -66,6 +66,8 @@ export function AdminSettings() {
     discount_code: "",
     store_name: "Hot Wheels Store",
     store_address: "",
+    shipping_charges_collection_enabled: false,
+    shipping_charges_amount: 0,
   })
 
   useEffect(() => {
@@ -97,15 +99,18 @@ export function AdminSettings() {
           cod_enabled: data.cod_enabled ?? true,
           online_payment_enabled: data.online_payment_enabled ?? true,
           discount_enabled: data.discount_enabled ?? false,
+          shipping_charges_collection_enabled: data.shipping_charges_collection_enabled ?? false,
+          shipping_charges_amount: data.shipping_charges_amount ?? 0,
         }
         setSettings(settingsData)
         setOriginalSettings(settingsData)
       }
-    } catch (err) {
-      console.error("Error fetching settings:", err)
-    } finally {
-      setLoading(false)
-    }
+      } catch (err) {
+        console.error("Error fetching settings:", err)
+        setValidationError("Failed to load settings. Please refresh the page.")
+      } finally {
+        setLoading(false)
+      }
   }
 
   const handleSave = async () => {
@@ -154,6 +159,8 @@ export function AdminSettings() {
         discount_code: settingsToSave.discount_code || "",
         store_name: settingsToSave.store_name || "Hot Wheels Store",
         store_address: settingsToSave.store_address || "",
+        shipping_charges_collection_enabled: settingsToSave.shipping_charges_collection_enabled ?? false,
+        shipping_charges_amount: settingsToSave.shipping_charges_amount || 0,
       }
 
       const res = await fetch("/api/admin/settings", {
@@ -163,14 +170,18 @@ export function AdminSettings() {
         body: JSON.stringify(payload),
       })
 
+      const responseData = await res.json()
+
       if (res.ok) {
-        const savedData = await res.json()
+        const savedData = responseData
         // Ensure all boolean values are properly set
         const settingsData = {
           ...savedData,
           cod_enabled: savedData.cod_enabled ?? true,
           online_payment_enabled: savedData.online_payment_enabled ?? true,
           discount_enabled: savedData.discount_enabled ?? false,
+          shipping_charges_collection_enabled: savedData.shipping_charges_collection_enabled ?? false,
+          shipping_charges_amount: savedData.shipping_charges_amount ?? 0,
         }
         setSettings(settingsData)
         setOriginalSettings(settingsData)
@@ -182,12 +193,17 @@ export function AdminSettings() {
           fetchSettings()
         }, 1000)
       } else {
-        const error = await res.json()
-        alert(`Failed to save settings: ${error.error || "Unknown error"}`)
+        // Show actual error from server
+        const errorMessage = responseData.error || 'Failed to save settings'
+        const errorDetails = responseData.details ? ` Details: ${responseData.details}` : ''
+        const errorHint = responseData.hint ? ` Hint: ${responseData.hint}` : ''
+        setValidationError(errorMessage + errorDetails + errorHint)
+        console.error('Failed to save settings:', responseData)
       }
     } catch (err) {
       console.error("Error saving settings:", err)
-      alert("Failed to save settings. Please try again.")
+      const errorMessage = err instanceof Error ? err.message : "Failed to save settings. Please try again."
+      setValidationError(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -450,15 +466,54 @@ export function AdminSettings() {
 
                   {/* COD Charges */}
                   {settings.cod_enabled && (
-                    <div className="pl-6 sm:pl-8">
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">COD Charges (₹)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.cod_charges || 0}
-                        onChange={(e) => setSettings((s) => ({ ...s, cod_charges: parseFloat(e.target.value) || 0 }))}
-                        className="w-full sm:w-40 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
-                      />
+                    <div className="pl-6 sm:pl-8 space-y-3 sm:space-y-4">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">COD Charges (₹)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={settings.cod_charges || 0}
+                          onChange={(e) => setSettings((s) => ({ ...s, cod_charges: parseFloat(e.target.value) || 0 }))}
+                          className="w-full sm:w-40 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                        />
+                      </div>
+
+                      {/* Shipping Charges Collection */}
+                      <div className="flex items-start justify-between p-3 sm:p-4 rounded-lg bg-gray-50 border border-gray-200">
+                        <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                          <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 mt-0.5 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm sm:text-base font-medium text-gray-900">Collect Shipping Charges Upfront</p>
+                            <p className="text-xs sm:text-sm text-gray-500">Require customers to pay shipping charges before order placement for COD orders</p>
+                          </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={settings.shipping_charges_collection_enabled ?? false}
+                            onChange={(e) => setSettings((s) => ({ ...s, shipping_charges_collection_enabled: e.target.checked }))}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                        </label>
+                      </div>
+
+                      {/* Shipping Charges Amount */}
+                      {settings.shipping_charges_collection_enabled && (
+                        <div className="pl-6 sm:pl-8">
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Shipping Charges Amount (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={settings.shipping_charges_amount || 0}
+                            onChange={(e) => setSettings((s) => ({ ...s, shipping_charges_amount: parseFloat(e.target.value) || 0 }))}
+                            className="w-full sm:w-40 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                            placeholder="0.00"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Amount customers need to pay upfront for shipping</p>
+                        </div>
+                      )}
                     </div>
                   )}
 

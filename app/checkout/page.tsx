@@ -53,6 +53,8 @@ export default function CheckoutPage() {
   const [settings, setSettings] = useState<StoreSettings | null>(null)
   const [loadingSettings, setLoadingSettings] = useState(true)
   const [step, setStep] = useState<"details" | "payment">("details")
+  const [shippingPaymentScreenshot, setShippingPaymentScreenshot] = useState<string | null>(null)
+  const [shippingPaymentCompleted, setShippingPaymentCompleted] = useState(false)
 
   // Fetch store settings
   useEffect(() => {
@@ -78,6 +80,13 @@ export default function CheckoutPage() {
   const shipping = subtotal > 500 ? 0 : 50
   const tax = subtotal * 0.18
   const codCharges = paymentMethod === "cod" && settings?.cod_charges ? settings.cod_charges : 0
+  
+  // Shipping charges for upfront payment (COD only)
+  const shippingChargesUpfront = paymentMethod === "cod" && 
+    settings?.shipping_charges_collection_enabled && 
+    settings?.shipping_charges_amount 
+    ? settings.shipping_charges_amount 
+    : 0
 
   // Calculate discount
   const discountAmount = discountApplied && settings?.discount_enabled && settings?.discount_percentage
@@ -150,10 +159,18 @@ export default function CheckoutPage() {
     }
   }
 
-  const handleSubmit = async (txnId?: string, screenshot?: string) => {
+  const handleSubmit = async (txnId?: string, screenshot?: string, shippingScreenshot?: string) => {
     if (paymentMethod === "online" && !txnId && !transactionId) {
       setError("Please enter the transaction ID after payment")
       return
+    }
+
+    // Check if shipping payment is required for COD
+    if (paymentMethod === "cod" && settings?.shipping_charges_collection_enabled && shippingChargesUpfront > 0) {
+      if (!shippingPaymentScreenshot && !shippingScreenshot) {
+        setError("Please complete shipping payment first")
+        return
+      }
     }
 
     setIsProcessing(true)
@@ -178,6 +195,8 @@ export default function CheckoutPage() {
           transaction_id: txnId || transactionId || null,
           payment_screenshot: screenshot || null,
           discount_amount: discountAmount,
+          shipping_charges: shippingChargesUpfront > 0 ? shippingChargesUpfront : null,
+          shipping_payment_screenshot: shippingScreenshot || shippingPaymentScreenshot || null,
         }),
       })
 
@@ -538,25 +557,59 @@ export default function CheckoutPage() {
                       </motion.div>
                     )}
 
-                    {/* COD Place Order Button */}
+                    {/* COD Payment Section */}
                     {paymentMethod === "cod" && (
-                      <button
-                        onClick={() => handleSubmit()}
-                        disabled={isProcessing}
-                        className="w-full py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="w-4 h-4" />
-                            Place Order (COD)
-                          </>
+                      <div className="space-y-4">
+                        {/* Shipping Payment for COD */}
+                        {settings?.shipping_charges_collection_enabled && shippingChargesUpfront > 0 && !shippingPaymentCompleted && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6"
+                          >
+                            <div className="mb-4">
+                              <h3 className="text-base font-bold text-gray-900 mb-2 text-center">
+                                Pay Shipping Charges
+                              </h3>
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                                <p className="text-sm text-amber-800">
+                                  <strong>₹{shippingChargesUpfront.toFixed(2)}</strong> shipping charges must be paid upfront for COD orders. 
+                                  The remaining amount will be collected on delivery.
+                                </p>
+                              </div>
+                            </div>
+                            <PaymentFlipCard
+                              settings={settings}
+                              isProcessing={isProcessing}
+                              onPaymentComplete={(data) => {
+                                setShippingPaymentScreenshot(data.screenshot)
+                                setShippingPaymentCompleted(true)
+                              }}
+                            />
+                          </motion.div>
                         )}
-                      </button>
+
+                        {/* COD Place Order Button */}
+                        {(!settings?.shipping_charges_collection_enabled || !shippingChargesUpfront || shippingPaymentCompleted) && (
+                          <button
+                            onClick={() => handleSubmit(undefined, undefined, shippingPaymentScreenshot || undefined)}
+                            disabled={isProcessing}
+                            className="w-full py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          >
+                            {isProcessing ? (
+                              <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="w-4 h-4" />
+                                Place Order (COD)
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </motion.div>
                 )}
@@ -639,6 +692,12 @@ export default function CheckoutPage() {
                     <span className="text-gray-600">Shipping</span>
                     <span>{shipping === 0 ? <span className="text-green-600">Free</span> : `₹${shipping.toFixed(2)}`}</span>
                   </div>
+                  {paymentMethod === "cod" && shippingChargesUpfront > 0 && (
+                    <div className="flex justify-between text-amber-700">
+                      <span className="font-medium">Shipping Charges (Upfront)</span>
+                      <span className="font-medium">₹{shippingChargesUpfront.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Tax (18% GST)</span>
                     <span>₹{tax.toFixed(2)}</span>

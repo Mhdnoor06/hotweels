@@ -51,6 +51,9 @@ CREATE TABLE public.orders (
   total DECIMAL(10, 2) NOT NULL,
   discount_amount DECIMAL(10, 2) DEFAULT 0,
   shipping_address JSONB NOT NULL,
+  shipping_charges DECIMAL(10, 2), -- Shipping charges amount for COD orders
+  shipping_payment_screenshot TEXT, -- URL to shipping payment screenshot
+  shipping_payment_status TEXT CHECK (shipping_payment_status IN ('pending', 'verified') OR shipping_payment_status IS NULL),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -97,6 +100,9 @@ CREATE TABLE public.store_settings (
   discount_enabled BOOLEAN DEFAULT false,
   discount_percentage DECIMAL(5, 2) DEFAULT 0,
   discount_code TEXT,
+  -- Shipping Charges Collection
+  shipping_charges_collection_enabled BOOLEAN DEFAULT false,
+  shipping_charges_amount DECIMAL(10, 2) DEFAULT 0,
   -- Store Info
   store_name TEXT DEFAULT 'Hot Wheels Store',
   store_address TEXT,

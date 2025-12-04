@@ -60,7 +60,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { orderId, status, payment_status } = body
+    const { orderId, status, payment_status, shipping_payment_status } = body
 
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
@@ -69,6 +69,7 @@ export async function PATCH(request: NextRequest) {
     const updateData: OrderUpdate = {}
     if (status) updateData.status = status.toLowerCase()
     if (payment_status) updateData.payment_status = payment_status.toLowerCase()
+    if (shipping_payment_status) updateData.shipping_payment_status = shipping_payment_status.toLowerCase()
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No update data provided' }, { status: 400 })

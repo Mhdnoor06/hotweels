@@ -74,6 +74,9 @@ export interface Database {
           total: number
           discount_amount: number
           shipping_address: Json
+          shipping_charges: number | null
+          shipping_payment_screenshot: string | null
+          shipping_payment_status: 'pending' | 'verified' | null
           created_at: string
           updated_at: string
         }
@@ -88,6 +91,9 @@ export interface Database {
           total: number
           discount_amount?: number
           shipping_address: Json
+          shipping_charges?: number | null
+          shipping_payment_screenshot?: string | null
+          shipping_payment_status?: 'pending' | 'verified' | null
           created_at?: string
           updated_at?: string
         }
@@ -102,6 +108,9 @@ export interface Database {
           total?: number
           discount_amount?: number
           shipping_address?: Json
+          shipping_charges?: number | null
+          shipping_payment_screenshot?: string | null
+          shipping_payment_status?: 'pending' | 'verified' | null
           created_at?: string
           updated_at?: string
         }
@@ -197,6 +206,8 @@ export interface Database {
           discount_code: string | null
           store_name: string
           store_address: string | null
+          shipping_charges_collection_enabled: boolean
+          shipping_charges_amount: number
           created_at: string
           updated_at: string
         }
@@ -215,6 +226,8 @@ export interface Database {
           discount_code?: string | null
           store_name?: string
           store_address?: string | null
+          shipping_charges_collection_enabled?: boolean
+          shipping_charges_amount?: number
           created_at?: string
           updated_at?: string
         }
@@ -233,6 +246,8 @@ export interface Database {
           discount_code?: string | null
           store_name?: string
           store_address?: string | null
+          shipping_charges_collection_enabled?: boolean
+          shipping_charges_amount?: number
           created_at?: string
           updated_at?: string
         }

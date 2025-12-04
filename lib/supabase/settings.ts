@@ -31,6 +31,8 @@ export async function getStoreSettings(): Promise<StoreSettings | null> {
       discount_code: "",
       store_name: "Hot Wheels Store",
       store_address: "",
+      shipping_charges_collection_enabled: false,
+      shipping_charges_amount: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     } as StoreSettings

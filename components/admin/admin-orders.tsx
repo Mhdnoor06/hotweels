@@ -515,17 +515,114 @@ export function AdminOrders() {
 
                 {/* COD Payment Info */}
                 {selectedOrder.payment_method === 'cod' && (
-                  <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-500 mb-3">Payment Information</h3>
-                    <div className="bg-blue-50 rounded-xl p-4 flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Truck size={20} className="text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-blue-900">Cash on Delivery</p>
-                        <p className="text-xs text-blue-600">Payment to be collected on delivery</p>
+                  <div className="mb-6 space-y-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-3">Payment Information</h3>
+                      <div className="bg-blue-50 rounded-xl p-4 flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Truck size={20} className="text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Cash on Delivery</p>
+                          <p className="text-xs text-blue-600">Payment to be collected on delivery</p>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Shipping Payment Verification */}
+                    {(selectedOrder as any).shipping_charges && (selectedOrder as any).shipping_charges > 0 && (
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-500 mb-3">Shipping Payment</h3>
+                        <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Shipping Charges</span>
+                            <span className="text-sm font-semibold text-gray-900">₹{((selectedOrder as any).shipping_charges || 0).toFixed(2)}</span>
+                          </div>
+                          
+                          {(selectedOrder as any).shipping_payment_screenshot && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setShowPaymentScreenshot(true)
+                                }}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                <ImageIcon size={16} />
+                                View Shipping Payment Screenshot
+                              </button>
+
+                              <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                                <span className="text-xs text-gray-600">Payment Status</span>
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                                  (selectedOrder as any).shipping_payment_status === 'verified' 
+                                    ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                                    : 'text-amber-600 bg-amber-50 border-amber-200'
+                                }`}>
+                                  {(selectedOrder as any).shipping_payment_status === 'verified' ? (
+                                    <>
+                                      <BadgeCheck size={12} />
+                                      Verified
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock size={12} />
+                                      Pending Verification
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+
+                              {(selectedOrder as any).shipping_payment_status === 'pending' && (
+                                <div className="flex gap-2 pt-2 border-t border-gray-200">
+                                  <button
+                                    onClick={async () => {
+                                      setUpdating(true)
+                                      try {
+                                        const response = await fetch('/api/admin/orders', {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          credentials: 'include',
+                                          body: JSON.stringify({ 
+                                            orderId: selectedOrder.id, 
+                                            shipping_payment_status: 'verified' 
+                                          }),
+                                        })
+                                        if (response.ok) {
+                                          const updatedOrder = { ...selectedOrder, shipping_payment_status: 'verified' as const }
+                                          setSelectedOrder(updatedOrder)
+                                          setOrders((prev) => prev.map((order) => 
+                                            order.id === selectedOrder.id ? updatedOrder : order
+                                          ))
+                                          // Auto-confirm order when shipping payment is verified
+                                          if (selectedOrder.status === 'pending') {
+                                            await updateOrderStatus(selectedOrder.id, 'confirmed')
+                                          }
+                                        }
+                                      } catch (err) {
+                                        console.error('Error verifying shipping payment:', err)
+                                      } finally {
+                                        setUpdating(false)
+                                      }
+                                    }}
+                                    disabled={updating}
+                                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                  >
+                                    {updating ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />}
+                                    Verify Shipping Payment
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          {!(selectedOrder as any).shipping_payment_screenshot && (
+                            <div className="text-center py-3 text-xs text-gray-500">
+                              No shipping payment screenshot uploaded
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -592,7 +689,7 @@ export function AdminOrders() {
 
       {/* Payment Screenshot Modal */}
       <AnimatePresence>
-        {showPaymentScreenshot && selectedOrder?.payment_screenshot && (
+        {showPaymentScreenshot && (selectedOrder?.payment_screenshot || (selectedOrder as any)?.shipping_payment_screenshot) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -608,36 +705,44 @@ export function AdminOrders() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <div>
-                  <h3 className="font-semibold text-gray-900">Payment Screenshot</h3>
-                  <p className="text-sm text-gray-500">Order: {selectedOrder.id.slice(0, 8)}...</p>
-                </div>
-                <button
-                  onClick={() => setShowPaymentScreenshot(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X size={20} className="text-gray-500" />
-                </button>
-              </div>
+              {selectedOrder && (
+                <>
+                  <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        {selectedOrder.payment_screenshot ? 'Payment Screenshot' : 'Shipping Payment Screenshot'}
+                      </h3>
+                      <p className="text-sm text-gray-500">Order: {selectedOrder.id.slice(0, 8)}...</p>
+                    </div>
+                    <button
+                      onClick={() => setShowPaymentScreenshot(false)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <X size={20} className="text-gray-500" />
+                    </button>
+                  </div>
 
-              {/* Screenshot */}
-              <div className="relative w-full h-[60vh] bg-gray-100">
-                <Image
-                  src={selectedOrder.payment_screenshot}
-                  alt="Payment Screenshot"
-                  fill
-                  className="object-contain"
-                />
-              </div>
+                  {/* Screenshot */}
+                  <div className="relative w-full h-[60vh] bg-gray-100">
+                    <Image
+                      src={(selectedOrder.payment_screenshot || (selectedOrder as any).shipping_payment_screenshot || '') as string}
+                      alt={selectedOrder.payment_screenshot ? "Payment Screenshot" : "Shipping Payment Screenshot"}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Footer with actions */}
-              {selectedOrder.payment_status === 'verification_pending' && (
+              {selectedOrder && selectedOrder.payment_status === 'verification_pending' && (
                 <div className="p-4 border-t border-gray-200 flex gap-3">
                   <button
                     onClick={() => {
-                      updatePaymentStatus(selectedOrder.id, 'verified')
-                      setShowPaymentScreenshot(false)
+                      if (selectedOrder) {
+                        updatePaymentStatus(selectedOrder.id, 'verified')
+                        setShowPaymentScreenshot(false)
+                      }
                     }}
                     disabled={updating}
                     className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
@@ -647,8 +752,10 @@ export function AdminOrders() {
                   </button>
                   <button
                     onClick={() => {
-                      updatePaymentStatus(selectedOrder.id, 'failed')
-                      setShowPaymentScreenshot(false)
+                      if (selectedOrder) {
+                        updatePaymentStatus(selectedOrder.id, 'failed')
+                        setShowPaymentScreenshot(false)
+                      }
                     }}
                     disabled={updating}
                     className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"

@@ -28,6 +28,8 @@ export interface CreateOrderInput {
   transaction_id?: string
   payment_screenshot?: string
   discount_amount?: number
+  shipping_charges?: number
+  shipping_payment_screenshot?: string
 }
 
 export async function getOrders(status?: string): Promise<OrderWithItems[]> {
@@ -235,6 +237,9 @@ export async function createOrder(input: CreateOrderInput): Promise<{ order: Ord
     payment_screenshot: input.payment_screenshot || null,
     total: input.total,
     shipping_address: input.shipping_address as unknown as Json,
+    shipping_charges: input.shipping_charges || null,
+    shipping_payment_screenshot: input.shipping_payment_screenshot || null,
+    shipping_payment_status: input.shipping_payment_screenshot ? 'pending' : null,
   }
 
   // Include discount_amount (default to 0 if not provided)

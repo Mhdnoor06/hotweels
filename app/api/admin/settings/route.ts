@@ -24,10 +24,10 @@ async function verifyAdminAuth(request: NextRequest): Promise<NextResponse | nul
 
 // GET - Get store settings (public read, but we'll still verify for consistency)
 export async function GET(request: NextRequest) {
-  // Settings can be read publicly, but we verify admin for consistency
-  // You can remove this check if you want public access
-  const authError = await verifyAdminAuth(request)
-  if (authError) return authError
+  // Settings can be read publicly - remove auth check for public access
+  // Uncomment below if you want to require admin auth
+  // const authError = await verifyAdminAuth(request)
+  // if (authError) return authError
   const { data, error } = await supabaseAdmin
     .from('store_settings')
     .select('*')
@@ -54,6 +54,8 @@ export async function GET(request: NextRequest) {
       discount_code: "",
       store_name: "Hot Wheels Store",
       store_address: "",
+      shipping_charges_collection_enabled: false,
+      shipping_charges_amount: 0,
     }
     return NextResponse.json(defaultSettings)
   }
@@ -79,11 +81,12 @@ export async function PUT(request: NextRequest) {
     }
 
     // Ensure boolean values are properly set
-    const cleanUpdateData = {
+    const cleanUpdateData: Record<string, unknown> = {
       ...updateData,
       cod_enabled: typeof updateData.cod_enabled === 'boolean' ? updateData.cod_enabled : updateData.cod_enabled === 'true' || updateData.cod_enabled === true,
       online_payment_enabled: typeof updateData.online_payment_enabled === 'boolean' ? updateData.online_payment_enabled : updateData.online_payment_enabled === 'true' || updateData.online_payment_enabled === true,
       discount_enabled: typeof updateData.discount_enabled === 'boolean' ? updateData.discount_enabled : updateData.discount_enabled === 'true' || updateData.discount_enabled === true,
+      shipping_charges_collection_enabled: typeof updateData.shipping_charges_collection_enabled === 'boolean' ? updateData.shipping_charges_collection_enabled : updateData.shipping_charges_collection_enabled === 'true' || updateData.shipping_charges_collection_enabled === true,
     }
 
     // Check if settings exist
@@ -105,7 +108,11 @@ export async function PUT(request: NextRequest) {
         .single()
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        console.error('Error creating settings:', error)
+        return NextResponse.json(
+          { error: error.message, details: error.details, hint: error.hint },
+          { status: 500 }
+        )
       }
 
       result = data
@@ -119,7 +126,12 @@ export async function PUT(request: NextRequest) {
         .single()
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        console.error('Error updating settings:', error)
+        console.error('Update data:', cleanUpdateData)
+        return NextResponse.json(
+          { error: error.message, details: error.details, hint: error.hint },
+          { status: 500 }
+        )
       }
 
       result = data
@@ -128,6 +140,10 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     console.error('Error in PUT /api/admin/settings:', error)
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    const errorMessage = error instanceof Error ? error.message : 'Invalid request body'
+    return NextResponse.json(
+      { error: errorMessage, type: 'unexpected_error' },
+      { status: 400 }
+    )
   }
 }
