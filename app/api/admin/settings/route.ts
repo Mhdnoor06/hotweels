@@ -60,7 +60,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(defaultSettings)
   }
 
-  return NextResponse.json(data)
+  // Add cache control headers
+  return NextResponse.json(data, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
+  })
 }
 
 // PUT - Update store settings
@@ -81,13 +88,29 @@ export async function PUT(request: NextRequest) {
     }
 
     // Ensure boolean values are properly set
+    // Keep all fields as they are, just normalize boolean values
     const cleanUpdateData: Record<string, unknown> = {
       ...updateData,
-      cod_enabled: typeof updateData.cod_enabled === 'boolean' ? updateData.cod_enabled : updateData.cod_enabled === 'true' || updateData.cod_enabled === true,
-      online_payment_enabled: typeof updateData.online_payment_enabled === 'boolean' ? updateData.online_payment_enabled : updateData.online_payment_enabled === 'true' || updateData.online_payment_enabled === true,
-      discount_enabled: typeof updateData.discount_enabled === 'boolean' ? updateData.discount_enabled : updateData.discount_enabled === 'true' || updateData.discount_enabled === true,
-      shipping_charges_collection_enabled: typeof updateData.shipping_charges_collection_enabled === 'boolean' ? updateData.shipping_charges_collection_enabled : updateData.shipping_charges_collection_enabled === 'true' || updateData.shipping_charges_collection_enabled === true,
+      // Normalize boolean values (handle string "true"/"false" from form submissions)
+      cod_enabled: typeof updateData.cod_enabled === 'boolean' 
+        ? updateData.cod_enabled 
+        : updateData.cod_enabled === 'true' || updateData.cod_enabled === true,
+      online_payment_enabled: typeof updateData.online_payment_enabled === 'boolean' 
+        ? updateData.online_payment_enabled 
+        : updateData.online_payment_enabled === 'true' || updateData.online_payment_enabled === true,
+      discount_enabled: typeof updateData.discount_enabled === 'boolean' 
+        ? updateData.discount_enabled 
+        : updateData.discount_enabled === 'true' || updateData.discount_enabled === true,
+      shipping_charges_collection_enabled: typeof updateData.shipping_charges_collection_enabled === 'boolean' 
+        ? updateData.shipping_charges_collection_enabled 
+        : updateData.shipping_charges_collection_enabled === 'true' || updateData.shipping_charges_collection_enabled === true,
+      // Ensure numeric fields are numbers
+      cod_charges: typeof updateData.cod_charges === 'number' ? updateData.cod_charges : parseFloat(String(updateData.cod_charges || 0)),
+      discount_percentage: typeof updateData.discount_percentage === 'number' ? updateData.discount_percentage : parseFloat(String(updateData.discount_percentage || 0)),
+      shipping_charges_amount: typeof updateData.shipping_charges_amount === 'number' ? updateData.shipping_charges_amount : parseFloat(String(updateData.shipping_charges_amount || 0)),
     }
+    
+    console.log('Cleaned update data:', cleanUpdateData)
 
     // Check if settings exist
     const { data: existing } = await supabaseAdmin
@@ -101,10 +124,11 @@ export async function PUT(request: NextRequest) {
 
     if (!existingSettings) {
       // Create new settings record if it doesn't exist
+      console.log('Creating new settings with data:', cleanUpdateData)
       const { data, error } = await supabaseAdmin
         .from('store_settings')
         .insert(cleanUpdateData as never)
-        .select()
+        .select('*') // Explicitly select all columns
         .single()
 
       if (error) {
@@ -115,14 +139,16 @@ export async function PUT(request: NextRequest) {
         )
       }
 
+      console.log('Settings created successfully:', data)
       result = data
     } else {
       // Update existing settings
+      console.log('Updating existing settings with data:', cleanUpdateData)
       const { data, error } = await supabaseAdmin
         .from('store_settings')
         .update(cleanUpdateData as never)
         .eq('id', existingSettings.id)
-        .select()
+        .select('*') // Explicitly select all columns
         .single()
 
       if (error) {
@@ -134,10 +160,18 @@ export async function PUT(request: NextRequest) {
         )
       }
 
+      console.log('Settings updated successfully:', data)
       result = data
     }
 
-    return NextResponse.json(result)
+    // Add cache control headers to prevent caching
+    return NextResponse.json(result, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error) {
     console.error('Error in PUT /api/admin/settings:', error)
     const errorMessage = error instanceof Error ? error.message : 'Invalid request body'

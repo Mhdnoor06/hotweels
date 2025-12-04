@@ -144,54 +144,76 @@ export function AdminSettings() {
         }
       }
 
-      // Ensure all boolean values are explicitly set
+      // Ensure all values are explicitly set - preserve user changes
+      // Use nullish coalescing (??) for booleans to allow false values
+      // Use || for strings/numbers only when we need defaults
       const payload = {
-        contact_phone: settingsToSave.contact_phone || "",
-        contact_email: settingsToSave.contact_email || "",
-        contact_whatsapp: settingsToSave.contact_whatsapp || "",
-        upi_qr_code: settingsToSave.upi_qr_code || "",
-        upi_id: settingsToSave.upi_id || "",
+        contact_phone: settingsToSave.contact_phone ?? "",
+        contact_email: settingsToSave.contact_email ?? "",
+        contact_whatsapp: settingsToSave.contact_whatsapp ?? "",
+        upi_qr_code: settingsToSave.upi_qr_code ?? "",
+        upi_id: settingsToSave.upi_id ?? "",
         cod_enabled: settingsToSave.cod_enabled ?? true,
         online_payment_enabled: settingsToSave.online_payment_enabled ?? true,
-        cod_charges: settingsToSave.cod_charges || 0,
+        cod_charges: settingsToSave.cod_charges ?? 0,
         discount_enabled: settingsToSave.discount_enabled ?? false,
-        discount_percentage: settingsToSave.discount_percentage || 0,
-        discount_code: settingsToSave.discount_code || "",
-        store_name: settingsToSave.store_name || "Hot Wheels Store",
-        store_address: settingsToSave.store_address || "",
+        discount_percentage: settingsToSave.discount_percentage ?? 0,
+        discount_code: settingsToSave.discount_code ?? "",
+        store_name: settingsToSave.store_name ?? "Hot Wheels Store",
+        store_address: settingsToSave.store_address ?? "",
         shipping_charges_collection_enabled: settingsToSave.shipping_charges_collection_enabled ?? false,
-        shipping_charges_amount: settingsToSave.shipping_charges_amount || 0,
+        shipping_charges_amount: settingsToSave.shipping_charges_amount ?? 0,
       }
 
+      console.log('Saving settings with payload:', payload)
+      
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache"
+        },
         credentials: 'include',
+        cache: 'no-store',
         body: JSON.stringify(payload),
       })
 
       const responseData = await res.json()
+      console.log('API response status:', res.status, 'data:', responseData)
 
       if (res.ok) {
         const savedData = responseData
+        console.log('Settings saved successfully:', savedData)
+        
         // Ensure all boolean values are properly set
         const settingsData = {
           ...savedData,
+          contact_phone: savedData.contact_phone || "",
+          contact_email: savedData.contact_email || "",
+          contact_whatsapp: savedData.contact_whatsapp || "",
+          upi_qr_code: savedData.upi_qr_code || "",
+          upi_id: savedData.upi_id || "",
           cod_enabled: savedData.cod_enabled ?? true,
           online_payment_enabled: savedData.online_payment_enabled ?? true,
+          cod_charges: savedData.cod_charges || 0,
           discount_enabled: savedData.discount_enabled ?? false,
+          discount_percentage: savedData.discount_percentage || 0,
+          discount_code: savedData.discount_code || "",
+          store_name: savedData.store_name || "Hot Wheels Store",
+          store_address: savedData.store_address || "",
           shipping_charges_collection_enabled: savedData.shipping_charges_collection_enabled ?? false,
-          shipping_charges_amount: savedData.shipping_charges_amount ?? 0,
+          shipping_charges_amount: savedData.shipping_charges_amount || 0,
         }
+        
+        console.log('Setting state with:', settingsData)
         setSettings(settingsData)
         setOriginalSettings(settingsData)
         setValidationError(null)
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
-        // Refresh settings from server to ensure consistency
-        setTimeout(() => {
-          fetchSettings()
-        }, 1000)
+        
+        // Don't refresh from server - trust the API response
+        // The API already returns the updated data
       } else {
         // Show actual error from server
         const errorMessage = responseData.error || 'Failed to save settings'
