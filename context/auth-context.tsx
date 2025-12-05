@@ -10,6 +10,7 @@ interface AuthContextType {
   isLoading: boolean
   signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signInWithGoogle: (redirectTo?: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   getAuthHeaders: () => Record<string, string>
 }
@@ -80,6 +81,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null }
   }
 
+  const signInWithGoogle = async (redirectTo?: string) => {
+    const redirectPath = redirectTo || '/collection'
+    const callbackUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectPath)}`
+      : undefined
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: callbackUrl,
+      },
+    })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    return { error: null }
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
   }
@@ -100,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       signUp,
       signIn,
+      signInWithGoogle,
       signOut,
       getAuthHeaders,
     }}>
