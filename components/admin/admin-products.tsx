@@ -148,10 +148,14 @@ export function AdminProducts() {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <Flame className="w-6 h-6 text-red-500" />
-              <span className="text-lg font-bold text-gray-900">
-                HOT<span className="text-red-500">WHEELS</span>
-              </span>
+              <Image 
+                src="/darklogo.jpg" 
+                alt="Wheels Frams" 
+                width={100} 
+                height={100}
+                className="h-10 w-auto object-contain"
+                priority
+              />
             </Link>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-gray-600">
               <X size={20} />

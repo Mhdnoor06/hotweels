@@ -30,7 +30,7 @@ export async function getStoreSettings(): Promise<StoreSettings | null> {
       discount_enabled: false,
       discount_percentage: 0,
       discount_code: "",
-      store_name: "Hot Wheels Store",
+      store_name: "Wheels Frams Store",
       store_address: "",
       shipping_charges_collection_enabled: false,
       shipping_charges_amount: 50, // Default shipping amount

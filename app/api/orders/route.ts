@@ -98,7 +98,12 @@ export async function POST(request: Request) {
       shipping_payment_screenshot: shipping_payment_screenshot || undefined,
     }
 
-    const { order, error } = await createOrder(orderInput)
+    // Pass user email and name to ensure user exists in public.users
+    const { order, error } = await createOrder(
+      orderInput,
+      user.email,
+      user.user_metadata?.full_name || user.user_metadata?.name || shipping_address?.fullName
+    )
 
     if (error || !order) {
       return NextResponse.json(

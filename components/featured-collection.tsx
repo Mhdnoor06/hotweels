@@ -81,7 +81,7 @@ export default function FeaturedCollection() {
             THE GARAGE
           </h2>
           <p className="text-gray-600 text-sm sm:text-base mt-3 sm:mt-4 max-w-md mx-auto px-4">
-            Explore our handpicked collection of legendary Hot Wheels models
+            Explore our handpicked collection of legendary Wheels Frams models
           </p>
         </motion.div>
 
@@ -129,7 +129,7 @@ export default function FeaturedCollection() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="flex-shrink-0 w-[85%] snap-center"
+                    className="shrink-0 w-[85%] snap-center h-full"
                   >
                     <ProductRevealCard
                       name={product.name}
@@ -171,7 +171,7 @@ export default function FeaturedCollection() {
             </div>
 
             {/* Desktop Grid */}
-            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 lg:gap-8 justify-items-center">
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 lg:gap-8 items-stretch">
               {products.map((product, index) => (
                 <motion.div
                   key={product.id}
@@ -183,6 +183,7 @@ export default function FeaturedCollection() {
                     ease: "easeOut",
                     delay: index * 0.1,
                   }}
+                  className="h-full"
                 >
                   <ProductRevealCard
                     name={product.name}

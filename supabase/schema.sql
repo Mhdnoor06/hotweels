@@ -1,4 +1,4 @@
--- Hot Wheels E-Commerce Database Schema
+-- Wheels Frams E-Commerce Database Schema
 -- Run this in your Supabase SQL Editor: https://supabase.com/dashboard/project/YOUR_PROJECT/sql
 
 -- Enable UUID extension
@@ -104,7 +104,7 @@ CREATE TABLE public.store_settings (
   shipping_charges_collection_enabled BOOLEAN DEFAULT false,
   shipping_charges_amount DECIMAL(10, 2) DEFAULT 0,
   -- Store Info
-  store_name TEXT DEFAULT 'Hot Wheels Store',
+  store_name TEXT DEFAULT 'Wheels Frams Store',
   store_address TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { ShoppingCart, Heart, ArrowLeft, Package, User, LogOut, ChevronDown } from "lucide-react"
 import { useCart } from "@/context/cart-context"
@@ -63,6 +64,20 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         {/* Left side */}
         <div className="flex items-center gap-4">
+          {/* Logo - Left side for all pages except homepage */}
+          {!isHomePage && (
+            <Link href="/" className="flex items-center">
+              <Image 
+                src="/darklogo.jpg" 
+                alt="Wheels Frams" 
+                width={120} 
+                height={120}
+                className="h-10 w-auto object-contain"
+                priority
+              />
+            </Link>
+          )}
+
           {showBack && (
             <Link
               href={backHref}
@@ -95,14 +110,33 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
               >
                 Collection
               </Link>
+              <Link
+                href="/contact"
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/contact")
+                    ? (isScrolled ? "text-gray-900" : "text-white")
+                    : (isScrolled ? "text-gray-500 hover:text-gray-900" : "text-white/70 hover:text-white")
+                }`}
+              >
+                Contact
+              </Link>
             </nav>
           )}
         </div>
 
-        {/* Center - Logo */}
-        <Link href="/" className={`text-xl font-bold tracking-tight transition-colors ${isScrolled ? "text-gray-900" : "text-white"}`}>
-          HOT<span className="text-red-500">WHEELS</span>
-        </Link>
+        {/* Center - Logo (only on homepage) */}
+        {isHomePage && (
+          <Link href="/" className="flex items-center justify-center">
+            <Image 
+              src={isScrolled ? "/darklogo.jpg" : "/logo.png"}
+              alt="Wheels Frams" 
+              width={120} 
+              height={120}
+              className="h-10 w-auto object-contain"
+              priority
+            />
+          </Link>
+        )}
 
         {/* Right side - Action icons with badges */}
         <div className="flex items-center gap-2 sm:gap-4">

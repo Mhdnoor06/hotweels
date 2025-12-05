@@ -1,6 +1,8 @@
 import { supabase } from './client'
 import { supabaseAdmin } from './server'
-import type { Order, OrderItem, Json } from './database.types'
+import type { Database, Order, OrderItem, Json } from './database.types'
+
+type UserInsert = Database['public']['Tables']['users']['Insert']
 
 export type OrderWithItems = Order & {
   order_items: (OrderItem & { product: { name: string; image: string; series: string } | null })[]
@@ -219,9 +221,60 @@ export async function getUserOrders(userId: string): Promise<OrderWithItems[]> {
   return (data as OrderWithItems[]) || []
 }
 
+// Helper function to ensure user exists in public.users table
+// This handles cases where the trigger might not have fired or users were created before the trigger existed
+async function ensureUserExists(userId: string, userEmail: string, userName?: string): Promise<{ error: string | null }> {
+  // Check if user exists in public.users
+  const { data: existingUser, error: checkError } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('id', userId)
+    .single()
+
+  // If user exists, no action needed
+  if (existingUser && !checkError) {
+    return { error: null }
+  }
+
+  // If error is not "not found", something went wrong
+  if (checkError && checkError.code !== 'PGRST116') {
+    console.error('Error checking user existence:', checkError)
+    return { error: checkError.message }
+  }
+
+  // User doesn't exist, create it
+  console.log(`Creating user record in public.users for user_id: ${userId}`)
+  const userData: UserInsert = {
+    id: userId,
+    email: userEmail,
+    name: userName || null,
+    role: 'user',
+  }
+  const { error: insertError } = await supabaseAdmin
+    .from('users')
+    .insert(userData as never)
+
+  if (insertError) {
+    console.error('Error creating user record:', insertError)
+    return { error: insertError.message }
+  }
+
+  return { error: null }
+}
+
 // Create a new order (server-side with admin privileges)
 // This should only be called from API routes after user authentication is verified
-export async function createOrder(input: CreateOrderInput): Promise<{ order: Order | null; error: string | null }> {
+export async function createOrder(input: CreateOrderInput, userEmail?: string, userName?: string): Promise<{ order: Order | null; error: string | null }> {
+  // Ensure user exists in public.users before creating order
+  // This handles cases where the trigger might not have fired or users were created before the trigger existed
+  if (userEmail) {
+    const { error: userError } = await ensureUserExists(input.user_id, userEmail, userName)
+    if (userError) {
+      console.error('Error ensuring user exists:', userError)
+      return { order: null, error: `Failed to ensure user exists: ${userError}` }
+    }
+  }
+
   // Determine payment status based on payment method
   const paymentStatus = input.payment_method === 'cod' ? 'cod' : 'verification_pending'
 

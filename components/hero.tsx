@@ -2,37 +2,233 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import gsap from "gsap"
 
-// Floating particle component
-function FloatingParticle({ index }: { index: number }) {
+// Car data moved outside component to prevent recreation on every render
+const CARS_DATA = [
+  {
+    name: "Ferrari",
+    model: "SF90 Stradale",
+    image: "/ferrari/carbody.webp",
+    frontWheel: "/ferrari/frontweel.webp",
+    backWheel: "/ferrari/rareweel.webp",
+    logo: "/logo/ferrari.png",
+    color: "#dc2626",
+    wheelPositions: {
+      front: { bottom: "13%", left: "20%", width: "15%" },
+      back: { bottom: "17.5%", right: "10%", width: "15%" }
+    },
+    specs: {
+      topSpeed: "340",
+      acceleration: "2.5",
+      power: "1000",
+      torque: "800"
+    }
+  },
+  {
+    name: "Lamborghini",
+    model: "Huracán EVO",
+    image: "/lamborgini/body.webp",
+    frontWheel: "/lamborgini/wheel.webp",
+    backWheel: "/lamborgini/rareweel.webp",
+    logo: "/logo/lamborghini.png",
+    color: "#74C365",
+    wheelPositions: {
+      front: { bottom: "31%", left: "18%", width: "15%" },
+      back: { bottom: "32%", right: "12%", width: "15%" }
+    },
+    specs: {
+      topSpeed: "325",
+      acceleration: "2.9",
+      power: "640",
+      torque: "600"
+    }
+  },
+  {
+    name: "Porsche",
+    model: "911 GT3 RS",
+    image: "/porche/body.webp",
+    frontWheel: "/porche/frontweel.webp",
+    backWheel: "/porche/rareweel.webp",
+    logo: "/logo/porsche.png",
+    color: "#0055A4",
+    wheelPositions: {
+      front: { bottom: "-8%", left: "17%", width: "16%" },
+      back: { bottom: "-3%", right: "17%", width: "16%" }
+    },
+    specs: {
+      topSpeed: "312",
+      acceleration: "3.2",
+      power: "525",
+      torque: "465"
+    }
+  },
+]
+
+// Helper function to darken/lighten color - moved outside component
+const adjustColor = (color: string, percent: number): string => {
+  const num = parseInt(color.replace("#", ""), 16)
+  const amt = Math.round(2.55 * percent)
+  const R = (num >> 16) + amt
+  const G = (num >> 8 & 0x00FF) + amt
+  const B = (num & 0x0000FF) + amt
+  return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+    (B < 255 ? B < 1 ? 0 : B : 255))
+    .toString(16).slice(1)
+}
+
+// Speedometer configuration - moved outside component
+const SPEEDOMETER_CONFIG = {
+  minSpeed: 0,
+  maxSpeed: 320,
+  startAngle: 135,
+  endAngle: 405,
+  tickCount: 16,
+}
+
+// Convert speed to angle - moved outside component
+const speedToAngle = (spd: number): number => {
+  const { startAngle, endAngle, maxSpeed, minSpeed } = SPEEDOMETER_CONFIG
+  const range = endAngle - startAngle
+  const speedRange = maxSpeed - minSpeed
+  return startAngle + (spd / speedRange) * range
+}
+
+// Pre-generate tick data outside component
+const generateTickData = () => {
+  const { tickCount, maxSpeed } = SPEEDOMETER_CONFIG
+  const majorTicks: Array<{
+    speedValue: number
+    angle: number
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+    textX: number
+    textY: number
+    isRedZone: boolean
+  }> = []
+  const minorTicks: Array<{
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+    isRedZone: boolean
+  }> = []
+
+  // Major ticks
+  for (let i = 0; i <= tickCount; i++) {
+    const speedValue = (i * maxSpeed) / tickCount
+    const angle = speedToAngle(speedValue)
+    const radian = (angle * Math.PI) / 180
+
+    const innerRadius = 130
+    const outerRadius = 155
+    const textRadius = 110
+
+    majorTicks.push({
+      speedValue,
+      angle,
+      x1: Math.round((200 + innerRadius * Math.cos(radian)) * 100) / 100,
+      y1: Math.round((200 + innerRadius * Math.sin(radian)) * 100) / 100,
+      x2: Math.round((200 + outerRadius * Math.cos(radian)) * 100) / 100,
+      y2: Math.round((200 + outerRadius * Math.sin(radian)) * 100) / 100,
+      textX: Math.round((200 + textRadius * Math.cos(radian)) * 100) / 100,
+      textY: Math.round((200 + textRadius * Math.sin(radian)) * 100) / 100,
+      isRedZone: speedValue >= 280,
+    })
+  }
+
+  // Minor ticks
+  const totalMinorTicks = tickCount * 4
+  for (let i = 0; i <= totalMinorTicks; i++) {
+    if (i % 4 === 0) continue
+
+    const speedValue = (i * maxSpeed) / totalMinorTicks
+    const angle = speedToAngle(speedValue)
+    const radian = (angle * Math.PI) / 180
+
+    const innerRadius = 140
+    const outerRadius = 155
+
+    minorTicks.push({
+      x1: Math.round((200 + innerRadius * Math.cos(radian)) * 100) / 100,
+      y1: Math.round((200 + innerRadius * Math.sin(radian)) * 100) / 100,
+      x2: Math.round((200 + outerRadius * Math.cos(radian)) * 100) / 100,
+      y2: Math.round((200 + outerRadius * Math.sin(radian)) * 100) / 100,
+      isRedZone: speedValue >= 280,
+    })
+  }
+
+  return { majorTicks, minorTicks }
+}
+
+const TICK_DATA = generateTickData()
+
+// Pre-generate particle animation configs
+const generateParticleConfigs = (count: number) => {
+  return Array.from({ length: count }, (_, i) => ({
+    startX: Math.random() * 100,
+    startY: Math.random() * 100,
+    yOffset: -200 - Math.random() * 200,
+    xOffset: (Math.random() - 0.5) * 100,
+    duration: 3 + Math.random() * 2,
+    repeatDelay: Math.random() * 2,
+  }))
+}
+
+const PARTICLE_CONFIGS_MOBILE = generateParticleConfigs(8)
+const PARTICLE_CONFIGS_DESKTOP = generateParticleConfigs(15)
+
+// Pre-generate speed line configs
+const generateSpeedLineConfigs = (count: number) => {
+  return Array.from({ length: count }, (_, i) => ({
+    top: `${20 + i * 10}%`,
+    width: `${30 + Math.random() * 20}%`,
+    opacity: 0.3 + Math.random() * 0.3,
+  }))
+}
+
+const SPEED_LINES_MOBILE = generateSpeedLineConfigs(5)
+const SPEED_LINES_DESKTOP = generateSpeedLineConfigs(8)
+
+// Memoized Floating particle component
+const FloatingParticle = memo(function FloatingParticle({
+  index,
+  config
+}: {
+  index: number
+  config: { startX: number; startY: number; yOffset: number; xOffset: number; duration: number; repeatDelay: number }
+}) {
   const particleRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!particleRef.current) return
 
-    const startX = Math.random() * 100
-    const startY = Math.random() * 100
-
     gsap.set(particleRef.current, {
-      left: `${startX}%`,
-      top: `${startY}%`,
+      left: `${config.startX}%`,
+      top: `${config.startY}%`,
       opacity: 0,
     })
 
-    gsap.to(particleRef.current, {
-      y: -200 - Math.random() * 200,
-      x: (Math.random() - 0.5) * 100,
+    const animation = gsap.to(particleRef.current, {
+      y: config.yOffset,
+      x: config.xOffset,
       opacity: 0.6,
-      duration: 3 + Math.random() * 2,
+      duration: config.duration,
       delay: index * 0.2,
       repeat: -1,
       ease: "none",
       yoyo: false,
-      repeatDelay: Math.random() * 2,
+      repeatDelay: config.repeatDelay,
     })
-  }, [index])
+
+    return () => {
+      animation.kill()
+    }
+  }, [index, config])
 
   return (
     <div
@@ -41,14 +237,14 @@ function FloatingParticle({ index }: { index: number }) {
       style={{ boxShadow: "0 0 8px 2px rgba(239, 68, 68, 0.4)" }}
     />
   )
-}
+})
 
-export default function HotWheelsHero() {
+export default function WheelsFramsHero() {
   const containerRef = useRef<HTMLDivElement>(null)
   const leftPanelRef = useRef<HTMLDivElement>(null)
   const rightPanelRef = useRef<HTMLDivElement>(null)
   const carContainerRef = useRef<HTMLDivElement>(null)
-  const hotWheelsTextRef = useRef<HTMLDivElement>(null)
+  const wheelsFramsTextRef = useRef<HTMLDivElement>(null)
   const frontWheelRef = useRef<HTMLDivElement>(null)
   const backWheelRef = useRef<HTMLDivElement>(null)
   const speedLinesRef = useRef<HTMLDivElement>(null)
@@ -66,80 +262,18 @@ export default function HotWheelsHero() {
   const rightPanelBgRef = useRef<HTMLDivElement>(null)
   const logoRef = useRef<HTMLDivElement>(null)
 
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
-  const [speed, setSpeed] = useState(0)
-  const [odometer, setOdometer] = useState("0035000")
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [currentCarIndex, setCurrentCarIndex] = useState(0)
 
-  // Car data with specific wheel positions and colors for each car
-  const cars = [
-    {
-      name: "Ferrari",
-      model: "SF90 Stradale",
-      image: "/ferrari/carbody.png",
-      frontWheel: "/ferrari/frontweel.png",
-      backWheel: "/ferrari/rareweel.png",
-      logo: "/logo/ferrari.png",
-      color: "#dc2626", // Red for Ferrari
-      wheelPositions: {
-        front: { bottom: "13%", left: "20%", width: "15%" },
-        back: { bottom: "17.5%", right: "10%", width: "15%" }
-      },
-      specs: {
-        topSpeed: "340",
-        acceleration: "2.5",
-        power: "1000",
-        torque: "800"
-      }
-    },
-    {
-      name: "Lamborghini",
-      model: "Huracán EVO",
-      image: "/lamborgini/body.png",
-      frontWheel: "/lamborgini/wheel.png",
-      backWheel: "/lamborgini/rareweel.png",
-      logo: "/logo/lamborghini.png",
-      color: "#74C365", // Green for Lamborghini
-      wheelPositions: {
-        front: { bottom: "31%", left: "18%", width: "15%" },
-        back: { bottom: "32%", right: "12%", width: "15%" }
-      },
-      specs: {
-        topSpeed: "325",
-        acceleration: "2.9",
-        power: "640",
-        torque: "600"
-      }
-    },
-    {
-      name: "Porsche",
-      model: "911 GT3 RS",
-      image: "/porche/body.png",
-      frontWheel: "/porche/frontweel.png",
-      backWheel: "/porche/rareweel.png",
-      logo: "/logo/porsche.png",
-      color: "#0055A4", // Blue for Porsche
-      wheelPositions: {
-        front: { bottom: "-8%", left: "17%", width: "16%" },
-        back: { bottom: "-3%", right: "17%", width: "16%" }
-      },
-      specs: {
-        topSpeed: "312",
-        acceleration: "3.2",
-        power: "525",
-        torque: "465"
-      }
-    },
-  ]
+  // Memoize current car to prevent unnecessary re-renders
+  const currentCar = CARS_DATA[currentCarIndex]
 
-  // Speedometer configuration
-  const minSpeed = 0
-  const maxSpeed = 320
-  const startAngle = 135
-  const endAngle = 405
-  const tickCount = 16
+  // Pre-compute gradient values for current car
+  const currentGradient = useMemo(() => ({
+    background: `linear-gradient(to bottom, ${currentCar.color}, ${adjustColor(currentCar.color, -20)}, ${adjustColor(currentCar.color, -40)})`,
+    text: `linear-gradient(to right, ${currentCar.color}, ${adjustColor(currentCar.color, 20)}, ${currentCar.color})`
+  }), [currentCar.color])
 
   // Detect mobile on mount and resize
   useEffect(() => {
@@ -152,16 +286,18 @@ export default function HotWheelsHero() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Change car function with roll-in animation
-  const changeCar = (direction: 'next' | 'prev') => {
+  // Change car function with roll-in animation - memoized with useCallback
+  const changeCar = useCallback((direction: 'next' | 'prev') => {
     const newIndex = direction === 'next'
-      ? (currentCarIndex + 1) % cars.length
-      : (currentCarIndex - 1 + cars.length) % cars.length
+      ? (currentCarIndex + 1) % CARS_DATA.length
+      : (currentCarIndex - 1 + CARS_DATA.length) % CARS_DATA.length
+
+    const newCar = CARS_DATA[newIndex]
 
     // Animate color change for right panel
     if (rightPanelBgRef.current) {
       gsap.to(rightPanelBgRef.current, {
-        background: `linear-gradient(to bottom, ${cars[newIndex].color}, ${adjustColor(cars[newIndex].color, -20)}, ${adjustColor(cars[newIndex].color, -40)})`,
+        background: `linear-gradient(to bottom, ${newCar.color}, ${adjustColor(newCar.color, -20)}, ${adjustColor(newCar.color, -40)})`,
         duration: 0.8,
         ease: 'power2.inOut',
       })
@@ -202,125 +338,65 @@ export default function HotWheelsHero() {
         })
       }
     })
-  }
+  }, [currentCarIndex])
 
-  // Helper function to darken color
-  const adjustColor = (color: string, percent: number) => {
-    const num = parseInt(color.replace("#", ""), 16)
-    const amt = Math.round(2.55 * percent)
-    const R = (num >> 16) + amt
-    const G = (num >> 8 & 0x00FF) + amt
-    const B = (num & 0x0000FF) + amt
-    return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
-      (B < 255 ? B < 1 ? 0 : B : 255))
-      .toString(16).slice(1)
-  }
-
-  // Convert speed to angle
-  const speedToAngle = (spd: number) => {
-    const range = endAngle - startAngle
-    const speedRange = maxSpeed - minSpeed
-    return startAngle + (spd / speedRange) * range
-  }
-
-  // Generate major tick marks
-  const generateMajorTicks = () => {
-    const ticks = []
-    for (let i = 0; i <= tickCount; i++) {
-      const speedValue = (i * maxSpeed) / tickCount
-      const angle = speedToAngle(speedValue)
-      const radian = (angle * Math.PI) / 180
-
-      const innerRadius = 130
-      const outerRadius = 155
-      const textRadius = 110
-
-      const x1 = Math.round((200 + innerRadius * Math.cos(radian)) * 100) / 100
-      const y1 = Math.round((200 + innerRadius * Math.sin(radian)) * 100) / 100
-      const x2 = Math.round((200 + outerRadius * Math.cos(radian)) * 100) / 100
-      const y2 = Math.round((200 + outerRadius * Math.sin(radian)) * 100) / 100
-      const textX = Math.round((200 + textRadius * Math.cos(radian)) * 100) / 100
-      const textY = Math.round((200 + textRadius * Math.sin(radian)) * 100) / 100
-
-      const isRedZone = speedValue >= 280
-
-      ticks.push(
-        <g key={`major-${i}`}>
-          <line
-            x1={x1}
-            y1={y1}
-            x2={x2}
-            y2={y2}
-            stroke={isRedZone ? "#e53935" : "#1a1a1a"}
-            strokeWidth="3"
-            strokeLinecap="round"
-            opacity="0.9"
-          />
-          <text
-            x={textX}
-            y={textY}
-            fill={isRedZone ? "#e53935" : "#1a1a1a"}
-            opacity="0.9"
-            fontSize="14"
-            fontWeight="600"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontFamily="Arial, sans-serif"
-          >
-            {Math.round(speedValue)}
-          </text>
-        </g>,
-      )
-    }
-    return ticks
-  }
-
-  // Generate minor tick marks
-  const generateMinorTicks = () => {
-    const ticks = []
-    const totalMinorTicks = tickCount * 4
-
-    for (let i = 0; i <= totalMinorTicks; i++) {
-      if (i % 4 === 0) continue
-
-      const speedValue = (i * maxSpeed) / totalMinorTicks
-      const angle = speedToAngle(speedValue)
-      const radian = (angle * Math.PI) / 180
-
-      const innerRadius = 140
-      const outerRadius = 155
-
-      const x1 = Math.round((200 + innerRadius * Math.cos(radian)) * 100) / 100
-      const y1 = Math.round((200 + innerRadius * Math.sin(radian)) * 100) / 100
-      const x2 = Math.round((200 + outerRadius * Math.cos(radian)) * 100) / 100
-      const y2 = Math.round((200 + outerRadius * Math.sin(radian)) * 100) / 100
-
-      const isRedZone = speedValue >= 280
-
-      ticks.push(
+  // Memoized tick mark rendering
+  const majorTickElements = useMemo(() =>
+    TICK_DATA.majorTicks.map((tick, i) => (
+      <g key={`major-${i}`}>
         <line
-          key={`minor-${i}`}
-          x1={x1}
-          y1={y1}
-          x2={x2}
-          y2={y2}
-          stroke={isRedZone ? "#e53935" : "#1a1a1a"}
-          strokeWidth="1.5"
+          x1={tick.x1}
+          y1={tick.y1}
+          x2={tick.x2}
+          y2={tick.y2}
+          stroke={tick.isRedZone ? "#e53935" : "#1a1a1a"}
+          strokeWidth="3"
           strokeLinecap="round"
-          opacity="0.7"
-        />,
-      )
-    }
-    return ticks
-  }
+          opacity="0.9"
+        />
+        <text
+          x={tick.textX}
+          y={tick.textY}
+          fill={tick.isRedZone ? "#e53935" : "#1a1a1a"}
+          opacity="0.9"
+          fontSize="14"
+          fontWeight="600"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontFamily="Arial, sans-serif"
+        >
+          {Math.round(tick.speedValue)}
+        </text>
+      </g>
+    )), [])
 
-  // Mouse tracking for glow effect (desktop only)
+  const minorTickElements = useMemo(() =>
+    TICK_DATA.minorTicks.map((tick, i) => (
+      <line
+        key={`minor-${i}`}
+        x1={tick.x1}
+        y1={tick.y1}
+        x2={tick.x2}
+        y2={tick.y2}
+        stroke={tick.isRedZone ? "#e53935" : "#1a1a1a"}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+    )), [])
+
+  // Mouse tracking for glow effect (desktop only) - with throttling
   useEffect(() => {
+    if (isMobile) return
+
+    let lastTime = 0
+    const throttleMs = 16 // ~60fps
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (isMobile) return
-      
-      setMousePos({ x: e.clientX, y: e.clientY })
+      const now = Date.now()
+      if (now - lastTime < throttleMs) return
+      lastTime = now
+
       if (cursorGlowRef.current) {
         gsap.to(cursorGlowRef.current, {
           x: e.clientX - 150,
@@ -331,17 +407,27 @@ export default function HotWheelsHero() {
       }
     }
 
-    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mousemove", handleMouseMove, { passive: true })
     return () => window.removeEventListener("mousemove", handleMouseMove)
   }, [isMobile])
 
+  // Store initial mobile state to avoid animation restart on resize
+  const initialIsMobileRef = useRef<boolean | null>(null)
+
   useEffect(() => {
+    // Capture initial mobile state only once
+    if (initialIsMobileRef.current === null) {
+      initialIsMobileRef.current = window.innerWidth < 1024
+    }
+
+    const initialIsMobile = initialIsMobileRef.current
+
     const ctx = gsap.context(() => {
       // Set initial positions
       gsap.set(leftPanelRef.current, { clipPath: "polygon(0 0, 0 0, 0 100%, 0 100%)" })
-      gsap.set(rightPanelRef.current, { y: isMobile ? '100%' : '-100%', opacity: 0 })
+      gsap.set(rightPanelRef.current, { y: initialIsMobile ? '100%' : '-100%', opacity: 0 })
       gsap.set(carContainerRef.current, { x: "120%", opacity: 0, scale: 0.8, rotateY: 15 })
-      gsap.set(hotWheelsTextRef.current, { y: -100, opacity: 0, scale: 0.5 })
+      gsap.set(wheelsFramsTextRef.current, { y: -100, opacity: 0, scale: 0.5 })
       gsap.set([frontWheelRef.current, backWheelRef.current], { rotation: 0 })
       gsap.set(speedLinesRef.current, { opacity: 0, x: 100 })
       gsap.set(glowRef.current, { opacity: 0, scale: 0.5 })
@@ -352,7 +438,7 @@ export default function HotWheelsHero() {
       gsap.set(speedometerRef.current, { scale: 0.8, opacity: 0, y: -20 })
       gsap.set(logoRef.current, { rotateY: 0, opacity: 0 })
       if (needleRef.current) {
-        needleRef.current.style.transform = `rotate(${startAngle}deg)`
+        needleRef.current.style.transform = `rotate(${SPEEDOMETER_CONFIG.startAngle}deg)`
         needleRef.current.style.transformOrigin = "200px 200px"
       }
 
@@ -417,7 +503,7 @@ export default function HotWheelsHero() {
           "-=0.5",
         )
         .to(
-          hotWheelsTextRef.current,
+          wheelsFramsTextRef.current,
           {
             y: 0,
             opacity: 1,
@@ -485,7 +571,7 @@ export default function HotWheelsHero() {
             ease: "power2.out",
             onUpdate: function () {
               const currentSpeed = Math.round(this.targets()[0].speedValue)
-              setSpeed(currentSpeed)
+              // Update DOM directly via refs - no setState needed
               if (speedDisplayRef.current) {
                 speedDisplayRef.current.textContent = currentSpeed.toString()
               }
@@ -507,7 +593,7 @@ export default function HotWheelsHero() {
             onUpdate: function () {
               const val = Math.floor(this.targets()[0].value)
               const odometerStr = val.toString().padStart(7, "0")
-              setOdometer(odometerStr)
+              // Update DOM directly via ref - no setState needed
               if (odometerTextRef.current) {
                 odometerTextRef.current.textContent = odometerStr
               }
@@ -525,7 +611,7 @@ export default function HotWheelsHero() {
             yoyo: true,
             onUpdate: function () {
               const currentSpeed = Math.round(this.targets()[0].speedValue)
-              setSpeed(currentSpeed)
+              // Update DOM directly via refs - no setState needed
               if (speedDisplayRef.current) {
                 speedDisplayRef.current.textContent = currentSpeed.toString()
               }
@@ -560,7 +646,7 @@ export default function HotWheelsHero() {
     }, containerRef)
 
     return () => ctx.revert()
-  }, [isMobile])
+  }, []) // Empty dependency - animation runs once on mount
 
   return (
     <section ref={containerRef} className="min-h-screen flex flex-col-reverse lg:flex-row overflow-hidden bg-gray-100 relative">
@@ -576,7 +662,17 @@ export default function HotWheelsHero() {
 
       {/* Navigation */}
       <nav ref={navRef} className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 lg:py-6 bg-gray-100/80 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none">
-        <div className="text-black font-black text-lg sm:text-xl tracking-tighter drop-shadow-lg">HW</div>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Image 
+            src="/darklogo.jpg" 
+            alt="Wheels Frams Logo" 
+            width={40} 
+            height={40}
+            className="h-8 sm:h-10 w-auto object-contain rounded-full"
+            priority
+          />
+          <div className="text-black font-black text-lg sm:text-xl tracking-tighter drop-shadow-lg">WF</div>
+        </div>
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-8">
@@ -606,7 +702,7 @@ export default function HotWheelsHero() {
               className="px-4 py-2 text-sm font-bold rounded-full transition-all duration-300 hover:scale-105"
               style={{
                 backgroundColor: 'white',
-                color: cars[currentCarIndex].color
+                color: currentCar.color
               }}
             >
               Get Started
@@ -659,7 +755,7 @@ export default function HotWheelsHero() {
                 className="px-8 py-3 text-lg font-bold rounded-full transition-all duration-300"
                 style={{
                   backgroundColor: 'white',
-                  color: cars[currentCarIndex].color
+                  color: currentCar.color
                 }}
               >
                 Get Started
@@ -686,10 +782,10 @@ export default function HotWheelsHero() {
           />
         </div>
 
-        {/* Floating particles */}
+        {/* Floating particles - using pre-computed configs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: isMobile ? 8 : 15 }).map((_, i) => (
-            <FloatingParticle key={i} index={i} />
+          {(isMobile ? PARTICLE_CONFIGS_MOBILE : PARTICLE_CONFIGS_DESKTOP).map((config, i) => (
+            <FloatingParticle key={i} index={i} config={config} />
           ))}
         </div>
 
@@ -707,8 +803,8 @@ export default function HotWheelsHero() {
         <div ref={speedometerRef} className="absolute top-12 sm:top-20 lg:top-48 left-4 sm:left-6 lg:left-8 z-30">
           <div className="relative">
             <svg width="120" height="120" viewBox="0 0 400 400" className="sm:w-[140px] sm:h-[140px] lg:w-[160px] lg:h-[160px]">
-              {generateMinorTicks()}
-              {generateMajorTicks()}
+              {minorTickElements}
+              {majorTickElements}
 
               {/* Odometer display */}
               <rect x="145" y="130" width="110" height="24" rx="3" fill="rgba(26, 26, 26, 0.7)" />
@@ -724,7 +820,7 @@ export default function HotWheelsHero() {
                 fontWeight="bold"
                 opacity="0.9"
               >
-                {odometer}
+                0035000
               </text>
 
               {/* km/h label */}
@@ -756,39 +852,37 @@ export default function HotWheelsHero() {
             {/* Current speed display */}
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
               <div ref={speedDisplayRef} className="text-lg sm:text-xl font-bold text-gray-900 tabular-nums">
-                {speed}
+                0
               </div>
             </div>
           </div>
         </div>
 
-        {/* HOT WHEELS Logo */}
-        <div ref={hotWheelsTextRef} className="absolute top-16 sm:top-20 lg:top-24 left-1/2 -translate-x-1/2 z-20 px-4 text-center">
+        {/* WHEELS FRAMS Logo */}
+        <div ref={wheelsFramsTextRef} className="absolute top-16 sm:top-20 lg:top-24 left-1/2 -translate-x-1/2 z-20 px-6 sm:px-8 md:px-12 text-center w-full max-w-full overflow-visible">
           <span
-            className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text tracking-tighter transition-all duration-500"
-            style={{
-              backgroundImage: `linear-gradient(to right, ${cars[currentCarIndex].color}, ${adjustColor(cars[currentCarIndex].color, 20)}, ${cars[currentCarIndex].color})`
-            }}
+            className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text tracking-tighter transition-all duration-500 whitespace-nowrap inline-block"
+            style={{ backgroundImage: currentGradient.text }}
           >
-            HOT WHEELS
+            WHEELS FRAMS
           </span>
           <p className="text-center text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2 tracking-[0.2em] sm:tracking-[0.3em] uppercase">Since 1968</p>
         </div>
 
-        {/* Speed lines */}
+        {/* Speed lines - using pre-computed configs */}
         <div
           ref={speedLinesRef}
           className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-48 sm:h-56 lg:h-64 pointer-events-none overflow-hidden"
         >
-          {Array.from({ length: isMobile ? 5 : 8 }).map((_, i) => (
+          {(isMobile ? SPEED_LINES_MOBILE : SPEED_LINES_DESKTOP).map((config, i) => (
             <div
               key={i}
               className="absolute h-0.5 bg-gradient-to-r from-gray-400/60 to-transparent"
               style={{
-                top: `${20 + i * 10}%`,
+                top: config.top,
                 left: "-10%",
-                width: `${30 + Math.random() * 20}%`,
-                opacity: 0.3 + Math.random() * 0.3,
+                width: config.width,
+                opacity: config.opacity,
               }}
             />
           ))}
@@ -834,16 +928,17 @@ export default function HotWheelsHero() {
             {/* Car Body - Wrapper for precise wheel positioning */}
             <div className="relative w-full">
               <Image
-                src={cars[currentCarIndex].image}
-                alt={`Hot Wheels ${cars[currentCarIndex].name}`}
+                src={currentCar.image}
+                alt={`Wheels Frams ${currentCar.name}`}
                 width={1200}
                 height={800}
+                sizes="(max-width: 640px) 280px, (max-width: 768px) 512px, (max-width: 1024px) 672px, 896px"
                 className="object-contain w-full h-auto relative z-10 drop-shadow-2xl"
                 style={{
                   filter: "drop-shadow(0 25px 50px rgba(0,0,0,0.4))",
                 }}
                 priority
-                quality={95}
+                quality={90}
               />
 
               {/* Back Wheel - Positioned relative to car body */}
@@ -851,16 +946,17 @@ export default function HotWheelsHero() {
                 ref={backWheelRef}
                 className="absolute z-20 aspect-square flex items-center justify-center"
                 style={{
-                  bottom: cars[currentCarIndex].wheelPositions.back.bottom,
-                  right: cars[currentCarIndex].wheelPositions.back.right,
-                  width: cars[currentCarIndex].wheelPositions.back.width,
+                  bottom: currentCar.wheelPositions.back.bottom,
+                  right: currentCar.wheelPositions.back.right,
+                  width: currentCar.wheelPositions.back.width,
                 }}
               >
                 <Image
-                  src={cars[currentCarIndex].backWheel}
+                  src={currentCar.backWheel}
                   alt="Back Wheel"
                   width={200}
                   height={200}
+                  sizes="(max-width: 640px) 42px, (max-width: 768px) 77px, (max-width: 1024px) 101px, 134px"
                   className="object-contain w-full h-full"
                   style={{ filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.4))" }}
                 />
@@ -871,16 +967,17 @@ export default function HotWheelsHero() {
                 ref={frontWheelRef}
                 className="absolute z-20 aspect-square flex items-center justify-center"
                 style={{
-                  bottom: cars[currentCarIndex].wheelPositions.front.bottom,
-                  left: cars[currentCarIndex].wheelPositions.front.left,
-                  width: cars[currentCarIndex].wheelPositions.front.width,
+                  bottom: currentCar.wheelPositions.front.bottom,
+                  left: currentCar.wheelPositions.front.left,
+                  width: currentCar.wheelPositions.front.width,
                 }}
               >
                 <Image
-                  src={cars[currentCarIndex].frontWheel}
+                  src={currentCar.frontWheel}
                   alt="Front Wheel"
                   width={200}
                   height={200}
+                  sizes="(max-width: 640px) 42px, (max-width: 768px) 77px, (max-width: 1024px) 101px, 134px"
                   className="object-contain w-full h-full"
                   style={{ filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.4))" }}
                 />
@@ -909,9 +1006,7 @@ export default function HotWheelsHero() {
         <div
           ref={rightPanelBgRef}
           className="absolute inset-0"
-          style={{
-            background: `linear-gradient(to bottom, ${cars[currentCarIndex].color}, ${adjustColor(cars[currentCarIndex].color, -20)}, ${adjustColor(cars[currentCarIndex].color, -40)})`,
-          }}
+          style={{ background: currentGradient.background }}
         />
         {/* Animated background shapes */}
         <div className="absolute inset-0 overflow-hidden">
@@ -932,13 +1027,13 @@ export default function HotWheelsHero() {
         {/* Content */}
         <div className="relative z-10 flex-1 flex flex-col justify-center">
           <div className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-6">
-            <span className="text-white/60 text-[10px] sm:text-xs font-bold tracking-[0.2em] sm:tracking-[0.3em] uppercase">{cars[currentCarIndex].name}</span>
+            <span className="text-white/60 text-[10px] sm:text-xs font-bold tracking-[0.2em] sm:tracking-[0.3em] uppercase">{currentCar.name}</span>
             <div className="w-10 sm:w-12 h-0.5 sm:h-1 bg-white/30 rounded-full" />
           </div>
 
           <h2 ref={titleRef} className="text-3xl sm:text-4xl lg:text-5xl font-black leading-[1.1] mb-4 sm:mb-6">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-300">
-              {cars[currentCarIndex].model}
+              {currentCar.model}
             </span>
           </h2>
 
@@ -950,10 +1045,11 @@ export default function HotWheelsHero() {
           <div className="mb-6 sm:mb-8 flex justify-center" style={{ perspective: '1000px' }}>
             <div ref={logoRef} style={{ transformStyle: 'preserve-3d', transformOrigin: 'center center' }}>
               <Image
-                src={cars[currentCarIndex].logo}
-                alt={`${cars[currentCarIndex].name} Logo`}
+                src={currentCar.logo}
+                alt={`${currentCar.name} Logo`}
                 width={280}
                 height={120}
+                sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 128px"
                 className="object-contain h-24 sm:h-28 lg:h-32 w-auto"
                 priority
                 style={{ display: 'block' }}
@@ -965,22 +1061,22 @@ export default function HotWheelsHero() {
           <div ref={statsRef} className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-5 mb-6 sm:mb-8">
             <div className="p-3 sm:p-4 lg:p-5 bg-white/5 backdrop-blur-sm rounded-xl lg:rounded-2xl border border-white/10">
               <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mb-1">Top Speed</div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{cars[currentCarIndex].specs.topSpeed}</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{currentCar.specs.topSpeed}</div>
               <div className="text-xs text-white/40 mt-0.5">km/h</div>
             </div>
             <div className="p-3 sm:p-4 lg:p-5 bg-white/5 backdrop-blur-sm rounded-xl lg:rounded-2xl border border-white/10">
               <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mb-1">0-100 km/h</div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{cars[currentCarIndex].specs.acceleration}</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{currentCar.specs.acceleration}</div>
               <div className="text-xs text-white/40 mt-0.5">seconds</div>
             </div>
             <div className="p-3 sm:p-4 lg:p-5 bg-white/5 backdrop-blur-sm rounded-xl lg:rounded-2xl border border-white/10">
               <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mb-1">Power</div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{cars[currentCarIndex].specs.power}</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{currentCar.specs.power}</div>
               <div className="text-xs text-white/40 mt-0.5">HP</div>
             </div>
             <div className="p-3 sm:p-4 lg:p-5 bg-white/5 backdrop-blur-sm rounded-xl lg:rounded-2xl border border-white/10">
               <div className="text-xs sm:text-sm text-white/50 uppercase tracking-wider mb-1">Torque</div>
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{cars[currentCarIndex].specs.torque}</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">{currentCar.specs.torque}</div>
               <div className="text-xs text-white/40 mt-0.5">Nm</div>
             </div>
           </div>

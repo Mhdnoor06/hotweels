@@ -21,8 +21,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Hot Wheels - Premium Die-Cast Collection",
-  description: "Discover the ultimate Hot Wheels collection with exclusive limited editions and collector sets.",
+  title: "Wheels Frams - Premium Die-Cast Collection",
+  description: "Discover the ultimate Wheels Frams collection with exclusive limited editions and collector sets.",
 };
 
 export default function RootLayout({

@@ -220,54 +220,145 @@ export function ProductForm({ productId }: ProductFormProps) {
   }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
+    const input = e.target
+    const files = Array.from(input.files || [])
+    
+    // Clear any previous errors first
+    setError(null)
+    
+    if (files.length === 0) {
+      // Reset input if no files selected
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
 
     // Check total images count (existing + new selected files)
     const totalImages = existingImages.length + selectedFiles.length + files.length
     if (totalImages > 4) {
       setError(`Maximum 4 images allowed. You can upload ${4 - existingImages.length - selectedFiles.length} more.`)
+      // Reset input on error
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
       return
     }
 
     // Validate each file
+    const validFiles: File[] = []
     for (const file of files) {
-      if (!file.type.startsWith('image/')) {
-        setError('Please select only image files')
+      // Check if file is actually a file object
+      if (!(file instanceof File)) {
+        console.warn('Invalid file object:', file)
+        continue
+      }
+
+      if (!file.type || !file.type.startsWith('image/')) {
+        setError(`"${file.name}" is not a valid image file. Please select only image files.`)
+        // Reset input on error
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
         return
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setError('Each image size must be less than 5MB')
+        setError(`"${file.name}" is too large. Each image size must be less than 5MB.`)
+        // Reset input on error
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
         return
       }
+
+      // Check if file is empty
+      if (file.size === 0) {
+        setError(`"${file.name}" appears to be empty. Please select a valid image file.`)
+        // Reset input on error
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+        return
+      }
+
+      validFiles.push(file)
     }
 
-    setError(null)
-    
+    if (validFiles.length === 0) {
+      setError('No valid image files were selected.')
+      // Reset input on error
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
+
     // Calculate how many new files we can add
     const availableSlots = 4 - existingImages.length - selectedFiles.length
-    const filesToAdd = files.slice(0, availableSlots)
+    const filesToAdd = validFiles.slice(0, availableSlots)
     
-    // Add new files to selected files
-    const newFiles = [...selectedFiles, ...filesToAdd]
-    setSelectedFiles(newFiles)
+    if (filesToAdd.length === 0) {
+      setError('No more image slots available.')
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
 
-    // Create preview URLs for new files (revoke old ones first)
-    previewUrls.forEach(url => URL.revokeObjectURL(url))
-    const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file))
-    setPreviewUrls(newPreviewUrls)
-    
-    // If this is the first image, set it as current
-    if (existingImages.length === 0 && newFiles.length > 0) {
-      setCurrentImageIndex(0)
+    try {
+      // Create preview URLs for new files only (keep existing ones)
+      const newPreviewUrls: string[] = []
+      
+      // Create object URLs for new files
+      for (const file of filesToAdd) {
+        try {
+          const objectUrl = URL.createObjectURL(file)
+          newPreviewUrls.push(objectUrl)
+        } catch (urlError) {
+          console.error('Error creating preview URL for file:', file.name, urlError)
+          setError(`Failed to create preview for "${file.name}". Please try selecting the file again.`)
+          // Clean up any URLs we created
+          newPreviewUrls.forEach(url => URL.revokeObjectURL(url))
+          // Reset input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+          }
+          return
+        }
+      }
+      
+      // Add new files to selected files
+      const newFiles = [...selectedFiles, ...filesToAdd]
+      setSelectedFiles(newFiles)
+      // Keep existing preview URLs and add new ones
+      setPreviewUrls([...previewUrls, ...newPreviewUrls])
+      
+      // If this is the first image, set it as current
+      if (existingImages.length === 0 && newFiles.length > 0) {
+        setCurrentImageIndex(0)
+      }
+      
+      // Clear error on success
+      setError(null)
+    } catch (err) {
+      console.error('Error processing image files:', err)
+      setError('Failed to process image files. Please try again.')
+      // Reset input on error
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
     }
     
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+    // Reset file input after successful processing (use setTimeout to ensure browser has processed)
+    setTimeout(() => {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }, 0)
   }
 
   const removeSelectedImage = (index: number) => {
@@ -354,10 +445,14 @@ export function ProductForm({ productId }: ProductFormProps) {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <Flame className="w-6 h-6 text-red-500" />
-              <span className="text-lg font-bold text-gray-900">
-                HOT<span className="text-red-500">WHEELS</span>
-              </span>
+              <Image 
+                src="/darklogo.jpg" 
+                alt="Wheels Frams" 
+                width={100} 
+                height={100}
+                className="h-10 w-auto object-contain"
+                priority
+              />
             </Link>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-gray-600">
               <X size={20} />
@@ -600,7 +695,16 @@ export function ProductForm({ productId }: ProductFormProps) {
                     />
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => {
+                        // Reset input value to ensure onChange fires even if same file is selected
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = ''
+                        }
+                        // Small delay to ensure browser processes the reset
+                        setTimeout(() => {
+                          fileInputRef.current?.click()
+                        }, 10)
+                      }}
                       disabled={isSubmitting || (existingImages.length + selectedFiles.length) >= 4}
                       className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 disabled:text-gray-400 rounded-xl transition-colors text-sm"
                     >

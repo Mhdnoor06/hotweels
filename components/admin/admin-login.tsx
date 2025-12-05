@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+import Image from "next/image"
 import { Eye, EyeOff, Lock, Mail, Flame, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAdminAuth } from "@/context/admin-auth-context"
@@ -58,12 +59,16 @@ export function AdminLogin() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-50 mb-4">
-            <Flame className="w-8 h-8 text-red-500" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <Image 
+              src="/darklogo.jpg" 
+              alt="Wheels Frams" 
+              width={120} 
+              height={120}
+              className="h-20 w-auto object-contain"
+              priority
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            HOT<span className="text-red-500">WHEELS</span>
-          </h1>
           <p className="text-gray-500 mt-2">Admin Portal</p>
         </div>
 
@@ -81,7 +86,7 @@ export function AdminLogin() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@hotwheels.com"
+                  placeholder="admin@wheelsframs.com"
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
                   required
                 />

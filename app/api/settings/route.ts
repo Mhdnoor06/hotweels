@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { getStoreSettings } from '@/lib/supabase/settings'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
+// Force dynamic rendering and disable caching
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
 // GET - Fetch store settings (public)
 export async function GET() {
   try {
@@ -38,7 +43,18 @@ export async function GET() {
 
     console.log('Settings API returning - shipping_charges_amount:', settingsData.shipping_charges_amount)
     
-    return NextResponse.json({ settings: settingsData })
+    // Return with cache control headers to prevent caching
+    return NextResponse.json(
+      { settings: settingsData },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store',
+        },
+      }
+    )
   } catch (error) {
     console.error('Error fetching settings:', error)
     return NextResponse.json(

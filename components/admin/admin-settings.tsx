@@ -64,7 +64,7 @@ export function AdminSettings() {
     discount_enabled: false,
     discount_percentage: 0,
     discount_code: "",
-    store_name: "Hot Wheels Store",
+    store_name: "Wheels Frams Store",
     store_address: "",
     shipping_charges_collection_enabled: false,
     shipping_charges_amount: 0,
@@ -330,10 +330,14 @@ export function AdminSettings() {
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <Flame className="w-6 h-6 text-red-500" />
-              <span className="text-lg font-bold text-gray-900">
-                HOT<span className="text-red-500">WHEELS</span>
-              </span>
+              <Image 
+                src="/darklogo.jpg" 
+                alt="Wheels Frams" 
+                width={100} 
+                height={100}
+                className="h-10 w-auto object-contain"
+                priority
+              />
             </Link>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-gray-600">
               <X size={20} />

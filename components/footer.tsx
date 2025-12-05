@@ -1,6 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
+import Image from "next/image"
+import Link from "next/link"
 import { ArrowRight, Facebook, Instagram, Twitter, Youtube } from "lucide-react"
 import { useState } from "react"
 import { usePathname } from "next/navigation"
@@ -74,9 +76,14 @@ export default function Footer() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <span className="text-2xl font-black tracking-tighter">
-              HOT<span className="text-red-500">WHEELS</span>
-            </span>
+            <Image 
+              src="/logo.png" 
+              alt="Wheels Frams" 
+              width={150} 
+              height={150}
+              className="h-16 w-auto object-contain mb-4"
+              priority
+            />
             <p className="text-gray-500 text-sm mt-4 leading-relaxed">Fueling the spirit of competition since 1968.</p>
 
             {/* Social Icons */}
@@ -107,9 +114,15 @@ export default function Footer() {
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link}>
-                    <a href="#" className="text-gray-500 hover:text-white transition-colors duration-200 text-sm">
-                      {link}
-                    </a>
+                    {link === "Contact" ? (
+                      <Link href="/contact" className="text-gray-500 hover:text-white transition-colors duration-200 text-sm">
+                        {link}
+                      </Link>
+                    ) : (
+                      <a href="#" className="text-gray-500 hover:text-white transition-colors duration-200 text-sm">
+                        {link}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -125,7 +138,7 @@ export default function Footer() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4"
         >
-          <p className="text-gray-600 text-sm">© 2025 Hot Wheels. All rights reserved.</p>
+          <p className="text-gray-600 text-sm">© 2025 Wheels Frams. All rights reserved.</p>
           <div className="flex gap-6 text-sm text-gray-600">
             <a href="#" className="hover:text-white transition-colors">
               Privacy Policy

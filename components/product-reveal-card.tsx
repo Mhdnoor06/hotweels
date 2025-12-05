@@ -30,11 +30,11 @@ interface ProductRevealCardProps {
 }
 
 export function ProductRevealCard({
-  name = "Hot Wheels Car",
+  name = "Wheels Frams Car",
   price = "₹199",
   originalPrice = "₹299",
   image = "/placeholder.png",
-  description = "A premium die-cast collectible from the Hot Wheels collection.",
+  description = "A premium die-cast collectible from the Wheels Frams collection.",
   rating = 4.8,
   reviewCount = 124,
   series = "HW Classics",
@@ -165,8 +165,8 @@ export function ProductRevealCard({
       variants={containerVariants}
       onClick={handleCardClick}
       className={cn(
-        "relative w-full max-w-[320px] sm:w-80 rounded-2xl border border-gray-200 bg-white text-gray-900 overflow-hidden",
-        "shadow-lg shadow-black/5 cursor-pointer group",
+        "relative w-full max-w-[320px] sm:w-80 h-full rounded-2xl border border-gray-200 bg-white text-gray-900 overflow-hidden",
+        "shadow-lg shadow-black/5 cursor-pointer group flex flex-col",
         className
       )}
     >
@@ -210,7 +210,7 @@ export function ProductRevealCard({
       </div>
 
       {/* Content */}
-      <div className="p-4 sm:p-6 space-y-2 sm:space-y-3">
+      <div className="p-4 sm:p-6 space-y-2 sm:space-y-3 flex-1 flex flex-col">
         {/* Rating */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="flex gap-0.5">
@@ -232,9 +232,9 @@ export function ProductRevealCard({
         </div>
 
         {/* Product Info */}
-        <div className="space-y-0.5 sm:space-y-1">
+        <div className="space-y-0.5 sm:space-y-1 flex-1">
           <motion.h3
-            className="text-lg sm:text-xl font-bold leading-tight tracking-tight"
+            className="text-lg sm:text-xl font-bold leading-tight tracking-tight line-clamp-2"
             initial={{ opacity: 0.9 }}
             whileHover={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
@@ -242,7 +242,7 @@ export function ProductRevealCard({
             {name}
           </motion.h3>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-auto">
             <span className="text-xl sm:text-2xl font-bold text-gray-900">{price}</span>
             {originalPrice && (
               <span className="text-base sm:text-lg text-gray-500 line-through">

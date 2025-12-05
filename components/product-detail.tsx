@@ -71,7 +71,14 @@ export function ProductDetail({ productId }: { productId: string }) {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const res = await fetch("/api/settings", { cache: 'no-store' })
+        // Add timestamp to bust cache at all levels (CDN, browser, Next.js)
+        const res = await fetch(`/api/settings?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        })
         if (res.ok) {
           const data = await res.json()
           setSettings(data.settings)
