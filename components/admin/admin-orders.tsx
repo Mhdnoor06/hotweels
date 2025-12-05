@@ -39,6 +39,7 @@ const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "ShipRocket", href: "/admin/shiprocket", icon: Truck },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
 

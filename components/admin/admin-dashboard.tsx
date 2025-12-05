@@ -20,6 +20,7 @@ import {
   X,
   Plus,
   Loader2,
+  Truck,
 } from "lucide-react"
 import type { Order, OrderItem } from "@/lib/supabase/database.types"
 
@@ -32,6 +33,7 @@ const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "ShipRocket", href: "/admin/shiprocket", icon: Truck },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
