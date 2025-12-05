@@ -671,7 +671,6 @@ export default function WheelsFramsHero() {
             className="h-8 sm:h-10 w-auto object-contain rounded-full"
             priority
           />
-          <div className="text-black font-black text-lg sm:text-xl tracking-tighter drop-shadow-lg">WF</div>
         </div>
 
         {/* Desktop Navigation */}

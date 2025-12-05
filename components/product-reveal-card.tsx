@@ -210,9 +210,9 @@ export function ProductRevealCard({
       </div>
 
       {/* Content */}
-      <div className="p-4 sm:p-6 space-y-2 sm:space-y-3 flex-1 flex flex-col">
+      <div className="p-4 sm:p-6 space-y-2 sm:space-y-3 flex-1 flex flex-col min-h-0">
         {/* Rating */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <div className="flex gap-0.5">
             {[...Array(5)].map((_, i) => (
               <Star
@@ -232,9 +232,9 @@ export function ProductRevealCard({
         </div>
 
         {/* Product Info */}
-        <div className="space-y-0.5 sm:space-y-1 flex-1">
+        <div className="space-y-0.5 sm:space-y-1 flex-1 flex flex-col min-h-0">
           <motion.h3
-            className="text-lg sm:text-xl font-bold leading-tight tracking-tight line-clamp-2"
+            className="text-lg sm:text-xl font-bold leading-tight tracking-tight line-clamp-2 shrink-0"
             initial={{ opacity: 0.9 }}
             whileHover={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
@@ -242,7 +242,7 @@ export function ProductRevealCard({
             {name}
           </motion.h3>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 mt-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-auto shrink-0">
             <span className="text-xl sm:text-2xl font-bold text-gray-900">{price}</span>
             {originalPrice && (
               <span className="text-base sm:text-lg text-gray-500 line-through">
@@ -260,9 +260,12 @@ export function ProductRevealCard({
       >
         <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
           {/* Product Description */}
-          <motion.div variants={contentVariants}>
+          <motion.div variants={contentVariants} className="group/desc">
             <h4 className="text-sm sm:text-base font-semibold mb-1.5 sm:mb-2">Product Details</h4>
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+            <p 
+              className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-3 group-hover/desc:line-clamp-none transition-all duration-200"
+              title={description}
+            >
               {description}
             </p>
           </motion.div>

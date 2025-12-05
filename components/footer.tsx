@@ -4,8 +4,8 @@ import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, Facebook, Instagram, Twitter, Youtube } from "lucide-react"
-import { useState } from "react"
-import { usePathname } from "next/navigation"
+import { useState, useEffect, useRef } from "react"
+import { usePathname, useRouter } from "next/navigation"
 
 const footerLinks = {
   shop: ["New Arrivals", "Best Sellers", "Limited Editions", "Collector Sets"],
@@ -16,11 +16,45 @@ const footerLinks = {
 export default function Footer() {
   const [email, setEmail] = useState("")
   const pathname = usePathname()
+  const router = useRouter()
+  const [adminClickCount, setAdminClickCount] = useState(0)
+  const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Hide footer on admin pages, login, and signup pages
   if (pathname?.startsWith('/admin') || pathname === '/login' || pathname === '/signup') {
     return null
   }
+
+  // Handle admin access click
+  const handleAdminClick = () => {
+    const newCount = adminClickCount + 1
+    setAdminClickCount(newCount)
+
+    // Clear existing timeout
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current)
+    }
+
+    // If 4 clicks reached, redirect to admin
+    if (newCount >= 4) {
+      router.push('/admin')
+      setAdminClickCount(0)
+    } else {
+      // Reset count after 3 seconds if not completed
+      resetTimeoutRef.current = setTimeout(() => {
+        setAdminClickCount(0)
+      }, 3000)
+    }
+  }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current)
+      }
+    }
+  }, [])
 
   return (
     <footer className="bg-gray-950 text-white pt-20 pb-8 px-8 relative overflow-hidden">
@@ -32,6 +66,14 @@ export default function Footer() {
                            linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
           backgroundSize: "60px 60px",
         }}
+      />
+
+      {/* Admin access button - small dot in top-right corner */}
+      <button
+        onClick={handleAdminClick}
+        className="fixed bottom-4 right-4 w-2 h-2 bg-gray-600 hover:bg-gray-500 rounded-full cursor-pointer z-50 transition-colors"
+        aria-label="Admin access"
+        title=""
       />
 
       <div className="max-w-7xl mx-auto relative z-10">
@@ -136,9 +178,22 @@ export default function Footer() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4"
+          className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 relative"
         >
-          <p className="text-gray-600 text-sm">© 2025 Wheels Frams. All rights reserved.</p>
+          <div className="flex flex-col gap-1">
+            <p className="text-gray-600 text-sm">© 2025 Wheels Frams. All rights reserved.</p>
+            <p className="text-gray-600 text-xs">
+              Developed by{" "}
+              <a
+                href="https://www.instagram.com/mohammed_noor_mn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white transition-colors underline"
+              >
+                Noor Mohammed
+              </a>
+            </p>
+          </div>
           <div className="flex gap-6 text-sm text-gray-600">
             <a href="#" className="hover:text-white transition-colors">
               Privacy Policy
