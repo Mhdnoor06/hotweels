@@ -345,8 +345,15 @@ export function AdminOrders() {
                     </td>
                     <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
                       <div className="text-xs sm:text-sm">
-                        <div className="text-gray-900">{order.user?.name || 'Guest'}</div>
-                        <div className="text-gray-500">{order.user?.email || '-'}</div>
+                        <div className="text-gray-900 font-medium">
+                          {(order.shipping_address as { fullName?: string } | null)?.fullName || order.user?.name || 'Guest'}
+                        </div>
+                        <div className="text-gray-500">{order.user?.email || (order.shipping_address as { email?: string } | null)?.email || '-'}</div>
+                        {(order.shipping_address as { phone?: string } | null)?.phone && (
+                          <div className="text-gray-500 text-xs mt-0.5">
+                            {(order.shipping_address as { phone?: string } | null)?.phone}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden md:table-cell">
@@ -642,11 +649,61 @@ export function AdminOrders() {
 
                 {/* Customer Info */}
                 <div className="mb-6">
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Customer</h3>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-gray-900 font-medium">{selectedOrder.user?.name || 'Guest'}</p>
-                    <p className="text-gray-500 text-sm">{selectedOrder.user?.email || '-'}</p>
-                    <p className="text-gray-500 text-sm mt-2">{(selectedOrder.shipping_address as { address?: string })?.address || 'No address'}</p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-3">Customer Details</h3>
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                    {(() => {
+                      const shippingAddr = selectedOrder.shipping_address as {
+                        fullName?: string
+                        email?: string
+                        phone?: string
+                        address?: string
+                        city?: string
+                        state?: string
+                        pincode?: string
+                      } | null
+                      
+                      return (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Full Name</p>
+                              <p className="text-sm text-gray-900 font-medium">
+                                {shippingAddr?.fullName || selectedOrder.user?.name || 'Guest'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Email</p>
+                              <p className="text-sm text-gray-900">
+                                {shippingAddr?.email || selectedOrder.user?.email || '-'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Phone</p>
+                              <p className="text-sm text-gray-900">
+                                {shippingAddr?.phone || '-'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">PIN Code</p>
+                              <p className="text-sm text-gray-900">
+                                {shippingAddr?.pincode || '-'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t border-gray-200">
+                            <p className="text-xs text-gray-500 mb-1">Shipping Address</p>
+                            <p className="text-sm text-gray-900">
+                              {shippingAddr?.address || 'No address'}
+                            </p>
+                            {(shippingAddr?.city || shippingAddr?.state) && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                {[shippingAddr?.city, shippingAddr?.state].filter(Boolean).join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
 
