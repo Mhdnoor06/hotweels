@@ -18,9 +18,22 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertCircle,
+  ChevronDown,
 } from "lucide-react"
 import type { ShipRocketSettingsResponse } from "@/lib/shiprocket/types"
 import { INDIAN_STATES } from "@/lib/shiprocket/utils"
+
+interface PickupLocation {
+  id: number
+  name: string
+  address: string
+  address2: string
+  city: string
+  state: string
+  pincode: string
+  phone: string
+  email: string
+}
 
 interface ShipRocketSettingsFormData {
   api_email: string

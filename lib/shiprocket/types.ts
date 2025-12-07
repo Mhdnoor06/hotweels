@@ -169,6 +169,7 @@ export interface ShipmentTrack {
   id: number
   awb_code: string
   courier_company_id: number
+  courier_name?: string // May not always be present in tracking response
   shipment_id: number
   order_id: number
   pickup_date: string

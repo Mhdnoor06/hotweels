@@ -19,14 +19,38 @@ async function verifyAdminAuth(request: NextRequest): Promise<NextResponse | nul
   return null
 }
 
-// GET - List all orders with items and user info
+// GET - List all orders with items and user info, or get single order by ID
 export async function GET(request: NextRequest) {
   // Verify admin authentication
   const authError = await verifyAdminAuth(request)
   if (authError) return authError
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
+  const orderId = searchParams.get('orderId')
 
+  // If orderId is provided, fetch single order
+  if (orderId) {
+    const { data, error } = await supabaseAdmin
+      .from('orders')
+      .select(`
+        *,
+        user:users(name, email),
+        order_items(
+          *,
+          product:products(name, image, series)
+        )
+      `)
+      .eq('id', orderId)
+      .single()
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
+  }
+
+  // Otherwise, fetch all orders
   let query = supabaseAdmin
     .from('orders')
     .select(`

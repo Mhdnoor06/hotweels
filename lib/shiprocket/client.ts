@@ -126,14 +126,61 @@ export class ShipRocketClient {
       },
     })
 
+    const data = await response.json().catch(() => ({}))
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      throw new Error(
-        error.message || `API request failed: ${response.status}`
-      )
+      // Extract error message from various ShipRocket error formats
+      const errorMessage =
+        data.message ||
+        data.error ||
+        data.errors?.join(', ') ||
+        (typeof data === 'string' ? data : null) ||
+        `API request failed: ${response.status}`
+      throw new Error(errorMessage)
     }
 
-    return response.json()
+    // ShipRocket sometimes returns errors with 200 status
+    if (data.status_code === 0 || data.status === 0) {
+      throw new Error(data.message || data.error || 'ShipRocket API returned an error')
+    }
+
+    return data as T
+  }
+
+  // ============================================
+  // PICKUP LOCATIONS
+  // ============================================
+
+  /**
+   * Get all registered pickup locations
+   */
+  async getPickupLocations(): Promise<{
+    id: number
+    pickup_location: string
+    address: string
+    city: string
+    state: string
+    pin_code: string
+    phone: string
+    email: string
+  }[]> {
+    const response = await this.request<{
+      data: {
+        shipping_address: {
+          id: number
+          pickup_location: string
+          address: string
+          address_2?: string
+          city: string
+          state: string
+          pin_code: string
+          phone: string
+          email: string
+        }[]
+      }
+    }>('/settings/company/pickup')
+
+    return response.data.shipping_address || []
   }
 
   // ============================================
@@ -188,6 +235,50 @@ export class ShipRocketClient {
   }
 
   /**
+   * Get order details from ShipRocket
+   */
+  async getOrderDetails(shiprocketOrderId: string): Promise<{
+    order_id: number
+    channel_order_id: string
+    shipment_id: number | null
+    status: string
+    status_code: number
+    awb_code: string | null
+    courier_company_id: number | null
+    courier_name: string | null
+  }> {
+    const response = await this.request<{
+      data: {
+        id: number
+        channel_order_id: string
+        shipments: {
+          id: number
+          awb_code: string | null
+          courier_company_id: number | null
+          courier: string | null
+          status: string
+          status_code: number
+        }[]
+        status: string
+        status_code: number
+      }
+    }>(`/orders/show/${shiprocketOrderId}`)
+
+    const shipment = response.data.shipments?.[0]
+
+    return {
+      order_id: response.data.id,
+      channel_order_id: response.data.channel_order_id,
+      shipment_id: shipment?.id || null,
+      status: shipment?.status || response.data.status,
+      status_code: shipment?.status_code || response.data.status_code,
+      awb_code: shipment?.awb_code || null,
+      courier_company_id: shipment?.courier_company_id || null,
+      courier_name: shipment?.courier || null,
+    }
+  }
+
+  /**
    * Cancel order
    */
   async cancelOrder(orderIds: number[]): Promise<{ status: number; message: string }> {
@@ -226,11 +317,33 @@ export class ShipRocketClient {
       body: JSON.stringify(body),
     })
 
+    // Log the response for debugging
+    console.log('AWB assign response:', JSON.stringify(response, null, 2))
+
+    // Handle different response structures from ShipRocket
+    const data = response.response?.data || (response as any).data || response
+
+    if (!data || !data.awb_code) {
+      // Check for error message in response
+      const errorMsg = (response as any).message || (response as any).error || 'AWB generation failed - no AWB code in response'
+      throw new Error(errorMsg)
+    }
+
+    // Handle assigned_date_time which can be a string or an object with a date property
+    let assignedDateTime: string = new Date().toISOString()
+    if (data.assigned_date_time) {
+      if (typeof data.assigned_date_time === 'string') {
+        assignedDateTime = data.assigned_date_time
+      } else if (typeof data.assigned_date_time === 'object' && data.assigned_date_time.date) {
+        assignedDateTime = data.assigned_date_time.date
+      }
+    }
+
     return {
-      awb_code: response.response.data.awb_code,
-      courier_company_id: response.response.data.courier_company_id,
-      courier_name: response.response.data.courier_name,
-      assigned_date_time: response.response.data.assigned_date_time.date,
+      awb_code: data.awb_code,
+      courier_company_id: data.courier_company_id || 0,
+      courier_name: data.courier_name || '',
+      assigned_date_time: assignedDateTime,
     }
   }
 
@@ -246,9 +359,19 @@ export class ShipRocketClient {
       body: JSON.stringify({ shipment_id: shipmentIds }),
     })
 
+    // Log response for debugging
+    console.log('Pickup schedule response:', JSON.stringify(response, null, 2))
+
+    // Handle response - check different possible structures
+    const pickupData = response.response || (response as unknown as PickupResponse['response'])
+
+    if (!pickupData || !pickupData.pickup_scheduled_date) {
+      throw new Error((response as { message?: string }).message || 'Failed to schedule pickup - no pickup date in response')
+    }
+
     return {
-      pickup_scheduled_date: response.response.pickup_scheduled_date,
-      pickup_token_number: response.response.pickup_token_number,
+      pickup_scheduled_date: pickupData.pickup_scheduled_date,
+      pickup_token_number: pickupData.pickup_token_number || '',
     }
   }
 
@@ -261,7 +384,22 @@ export class ShipRocketClient {
       body: JSON.stringify({ shipment_id: shipmentIds }),
     })
 
-    return response.label_url
+    // Log response for debugging
+    console.log('Generate label response:', JSON.stringify(response, null, 2))
+
+    // Handle different possible response structures
+    const labelUrl = response.label_url || (response as { label_url?: string }).label_url
+
+    if (!labelUrl) {
+      // Check if there's an error about not_created
+      const notCreated = response.not_created
+      if (notCreated && notCreated.length > 0) {
+        throw new Error(`Failed to generate label: ${notCreated.join(', ')}`)
+      }
+      throw new Error((response as { message?: string }).message || 'Failed to generate label - no URL in response')
+    }
+
+    return labelUrl
   }
 
   /**
@@ -286,6 +424,7 @@ export class ShipRocketClient {
   async trackByAWB(awbCode: string): Promise<{
     awb: string
     courier: string
+    courier_company_id: number | null
     current_status: string
     current_status_id: number
     events: TrackingActivity[]
@@ -297,17 +436,26 @@ export class ShipRocketClient {
       `/courier/track/awb/${awbCode}`
     )
 
-    const track = response.tracking_data.shipment_track[0]
+    // Log response for debugging
+    console.log('Track by AWB response:', JSON.stringify(response, null, 2))
+
+    const trackingData = response.tracking_data
+    if (!trackingData) {
+      throw new Error('No tracking data in response')
+    }
+
+    const track = trackingData.shipment_track?.[0]
 
     return {
       awb: track?.awb_code || awbCode,
-      courier: track?.courier_company_id?.toString() || '',
+      courier: track?.courier_name || '', // Note: courier_name may not always be present
+      courier_company_id: track?.courier_company_id || null,
       current_status: track?.current_status || 'Unknown',
-      current_status_id: response.tracking_data.shipment_status_id,
-      events: response.tracking_data.shipment_track_activities || [],
-      etd: track?.edd || response.tracking_data.etd,
+      current_status_id: trackingData.shipment_status_id || 0,
+      events: trackingData.shipment_track_activities || [],
+      etd: track?.edd || trackingData.etd || '',
       delivered_date: track?.delivered_date || null,
-      track_url: response.tracking_data.track_url,
+      track_url: trackingData.track_url || '',
     }
   }
 
@@ -317,6 +465,7 @@ export class ShipRocketClient {
   async trackByShipmentId(shipmentId: number): Promise<{
     awb: string
     courier: string
+    courier_company_id: number | null
     current_status: string
     current_status_id: number
     events: TrackingActivity[]
@@ -328,17 +477,23 @@ export class ShipRocketClient {
       `/courier/track/shipment/${shipmentId}`
     )
 
-    const track = response.tracking_data.shipment_track[0]
+    const trackingData = response.tracking_data
+    if (!trackingData) {
+      throw new Error('No tracking data in response')
+    }
+
+    const track = trackingData.shipment_track?.[0]
 
     return {
       awb: track?.awb_code || '',
-      courier: track?.courier_company_id?.toString() || '',
+      courier: track?.courier_name || '',
+      courier_company_id: track?.courier_company_id || null,
       current_status: track?.current_status || 'Unknown',
-      current_status_id: response.tracking_data.shipment_status_id,
-      events: response.tracking_data.shipment_track_activities || [],
-      etd: track?.edd || response.tracking_data.etd,
+      current_status_id: trackingData.shipment_status_id || 0,
+      events: trackingData.shipment_track_activities || [],
+      etd: track?.edd || trackingData.etd || '',
       delivered_date: track?.delivered_date || null,
-      track_url: response.tracking_data.track_url,
+      track_url: trackingData.track_url || '',
     }
   }
 }

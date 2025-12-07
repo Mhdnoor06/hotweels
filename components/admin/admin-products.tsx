@@ -4,34 +4,19 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useAdminAuth } from "@/context/admin-auth-context"
 import {
-  LayoutDashboard,
   Package,
-  ShoppingCart,
-  Settings,
-  Flame,
-  LogOut,
-  Menu,
-  X,
   Search,
   Plus,
   Edit2,
   Trash2,
   ChevronDown,
   Loader2,
-  Truck,
 } from "lucide-react"
 import type { Product } from "@/lib/supabase/database.types"
-
-const navItems = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
-  { label: "Products", href: "/admin/products", icon: Package },
-  { label: "ShipRocket", href: "/admin/shiprocket", icon: Truck },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
-]
+import { AdminPageHeader } from "./admin-page-header"
 
 const seriesOptions = [
   "All Series",
@@ -48,9 +33,7 @@ const rarityOptions = ["All Rarities", "Common", "Uncommon", "Rare", "Super Rare
 
 export function AdminProducts() {
   const router = useRouter()
-  const pathname = usePathname()
-  const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { isAuthenticated, isLoading: authLoading } = useAdminAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [seriesFilter, setSeriesFilter] = useState("All Series")
   const [rarityFilter, setRarityFilter] = useState("All Rarities")
@@ -84,11 +67,6 @@ export function AdminProducts() {
 
     fetchProducts()
   }, [router, isAuthenticated, authLoading])
-
-  const handleLogout = async () => {
-    await logout()
-    router.push("/admin")
-  }
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
@@ -137,94 +115,11 @@ export function AdminProducts() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/80 shadow-lg lg:shadow-none transform transition-all duration-300 ease-out lg:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
-      >
-        <div className="flex flex-col h-full backdrop-blur-sm">
-          <div className="flex items-center justify-between h-20 px-6 border-b border-gray-200/60 bg-white/50 backdrop-blur-md">
-            <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-              <div className="relative">
-                <Image 
-                  src="/darklogo.jpg" 
-                  alt="Wheels Frams" 
-                  width={100} 
-                  height={100}
-                  className="h-10 w-10 object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
-                  priority
-                />
-              </div>
-              <span className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Admin
-              </span>
-            </Link>
-            <button 
-              onClick={() => setSidebarOpen(false)} 
-              className="lg:hidden text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive 
-                      ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md shadow-red-500/20" 
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
-                  }`}
-                >
-                  {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
-                  )}
-                  <item.icon 
-                    size={20} 
-                    className={`transition-transform duration-200 ${isActive ? "text-white scale-110" : "group-hover:scale-110 text-gray-500 group-hover:text-gray-700"}`} 
-                  />
-                  <span className="relative z-10">{item.label}</span>
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent rounded-xl" />
-                  )}
-                </Link>
-              )
-            })}
-          </nav>
-
-          <div className="p-4 border-t border-gray-200/60 bg-white/30 backdrop-blur-sm">
-            <button
-              onClick={handleLogout}
-              className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200 border border-transparent hover:border-red-100"
-            >
-              <LogOut 
-                size={20} 
-                className="transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" 
-              />
-              <span>Logout</span>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-gray-600">
-              <Menu size={24} />
-            </button>
-            <h1 className="text-xl font-semibold text-gray-900">Products</h1>
-          </div>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <AdminPageHeader
+        title="Products"
+        icon={Package}
+        actions={
           <Link
             href="/admin/products/new"
             className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -232,10 +127,9 @@ export function AdminProducts() {
             <Plus size={16} />
             <span className="hidden sm:inline">Add Product</span>
           </Link>
-        </header>
-
-        <main className="flex-1 p-4 lg:p-8">
-          {/* Filters */}
+        }
+      />
+      {/* Filters */}
           <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
@@ -359,14 +253,12 @@ export function AdminProducts() {
           </div>
           )}
 
-          {!loading && filteredProducts.length === 0 && (
-            <div className="text-center py-16">
-              <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">No products found</p>
-            </div>
-          )}
-        </main>
-      </div>
+      {!loading && filteredProducts.length === 0 && (
+        <div className="text-center py-16">
+          <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">No products found</p>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
