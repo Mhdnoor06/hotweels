@@ -4,8 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 // Force deployment to India/Asia regions for faster response to Shiprocket
-// bom1 = Mumbai, sin1 = Singapore, hyd1 = Hyderabad
-export const preferredRegion = ['bom1', 'sin1', 'hyd1']
+// bom1 = Mumbai, sin1 = Singapore
+export const preferredRegion = ['bom1', 'sin1']
 
 // Increase max duration to handle potential latency
 export const maxDuration = 30

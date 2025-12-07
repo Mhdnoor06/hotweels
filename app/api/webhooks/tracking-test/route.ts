@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 // Edge runtime for instant response (no cold start ~5ms)
 export const runtime = 'edge'
 
-// Deploy to India/Asia regions
-export const preferredRegion = ['bom1', 'sin1', 'hyd1']
+// Deploy to India/Asia regions (bom1 = Mumbai, sin1 = Singapore)
+export const preferredRegion = ['bom1', 'sin1']
 
 // Simple CORS headers
 const headers = {
