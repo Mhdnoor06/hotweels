@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
 // Edge runtime for instant response (no cold start ~5ms)
 export const runtime = 'edge'
@@ -27,26 +27,40 @@ export async function GET() {
   )
 }
 
-// Webhook receiver - instant acknowledgment
+// Webhook receiver - instant acknowledgment + async forwarding
 export async function POST(request: NextRequest) {
   try {
-    // Parse payload to validate it's JSON
     const payload = await request.json()
 
-    // Log for debugging (visible in Vercel logs)
     console.log('Webhook received:', JSON.stringify(payload))
 
-    // Return immediate success
+    // Forward to main endpoint asynchronously (fire and forget)
+    // This processes the webhook in the background while we return 200 immediately
+    const forwardUrl = new URL('/api/webhooks/tracking', request.url)
+
+    // Use waitUntil pattern via fetch with no await for immediate response
+    fetch(forwardUrl.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': request.headers.get('x-api-key') || '',
+        'x-forwarded-from': 'tracking-test'
+      },
+      body: JSON.stringify(payload)
+    }).catch(err => {
+      console.error('Forward failed:', err)
+    })
+
+    // Return immediate success to Shiprocket
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Webhook received',
+        message: 'Webhook received and queued for processing',
         awb: payload.awb || 'N/A'
       }),
       { status: 200, headers }
     )
   } catch {
-    // Even on error, return 200 (Shiprocket requirement)
     return new Response(
       JSON.stringify({ success: true, message: 'Webhook acknowledged' }),
       { status: 200, headers }
