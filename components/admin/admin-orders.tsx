@@ -205,50 +205,72 @@ export function AdminOrders() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform lg:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/80 shadow-lg lg:shadow-none transform transition-all duration-300 ease-out lg:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-            <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <Image 
-                src="/darklogo.jpg" 
-                alt="Wheels Frams" 
-                width={100} 
-                height={100}
-                className="h-10 w-auto object-contain"
-                priority
-              />
+        <div className="flex flex-col h-full backdrop-blur-sm">
+          <div className="flex items-center justify-between h-20 px-6 border-b border-gray-200/60 bg-white/50 backdrop-blur-md">
+            <Link href="/admin/dashboard" className="flex items-center gap-3 group">
+              <div className="relative">
+                <Image 
+                  src="/darklogo.jpg" 
+                  alt="Wheels Frams" 
+                  width={100} 
+                  height={100}
+                  className="h-10 w-10 object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
+                  priority
+                />
+              </div>
+              <span className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                Admin
+              </span>
             </Link>
-            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-gray-600">
+            <button 
+              onClick={() => setSidebarOpen(false)} 
+              className="lg:hidden text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors"
+            >
               <X size={20} />
             </button>
           </div>
 
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {navItems.map((item) => {
               const isActive = pathname === item.href
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    isActive ? "bg-red-50 text-red-600" : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    isActive 
+                      ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md shadow-red-500/20" 
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
                   }`}
                 >
-                  <item.icon size={20} />
-                  {item.label}
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
+                  )}
+                  <item.icon 
+                    size={20} 
+                    className={`transition-transform duration-200 ${isActive ? "text-white scale-110" : "group-hover:scale-110 text-gray-500 group-hover:text-gray-700"}`} 
+                  />
+                  <span className="relative z-10">{item.label}</span>
+                  {isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent rounded-xl" />
+                  )}
                 </Link>
               )
             })}
           </nav>
 
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-gray-200/60 bg-white/30 backdrop-blur-sm">
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200 border border-transparent hover:border-red-100"
             >
-              <LogOut size={20} />
-              Logout
+              <LogOut 
+                size={20} 
+                className="transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" 
+              />
+              <span>Logout</span>
             </button>
           </div>
         </div>

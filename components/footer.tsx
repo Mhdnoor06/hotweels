@@ -3,14 +3,17 @@
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Facebook, Instagram, Twitter, Youtube } from "lucide-react"
+import { ArrowRight, Instagram } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
 const footerLinks = {
-  shop: ["New Arrivals", "Best Sellers", "Limited Editions", "Collector Sets"],
-  about: ["Our Story", "Careers", "Press", "Contact"],
-  support: ["FAQ", "Shipping", "Returns", "Track Order"],
+  quickLinks: [
+    { name: "Collection", href: "/collection" },
+    { name: "Wishlist", href: "/wishlist" },
+    { name: "Orders", href: "/orders" },
+    { name: "Contact", href: "/contact" },
+  ],
 }
 
 export default function Footer() {
@@ -128,48 +131,38 @@ export default function Footer() {
             />
             <p className="text-gray-500 text-sm mt-4 leading-relaxed">Fueling the spirit of competition since 1968.</p>
 
-            {/* Social Icons */}
-            <div className="flex gap-4 mt-6">
-              {[Facebook, Instagram, Twitter, Youtube].map((Icon, i) => (
-                <motion.a
-                  key={i}
-                  href="#"
-                  whileHover={{ scale: 1.1, y: -2 }}
-                  className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <Icon size={18} />
-                </motion.a>
-              ))}
+            {/* Instagram */}
+            <div className="mt-6">
+              <motion.a
+                href="https://www.instagram.com/wheelsframes?igsh=MW1iNGl2czE3eWRj"
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.1, y: -2 }}
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors inline-flex"
+              >
+                <Instagram size={18} />
+              </motion.a>
             </div>
           </motion.div>
 
-          {/* Link Columns */}
-          {Object.entries(footerLinks).map(([title, links], colIndex) => (
-            <motion.div
-              key={title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: (colIndex + 1) * 0.1 }}
-            >
-              <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">{title}</h4>
-              <ul className="space-y-3">
-                {links.map((link) => (
-                  <li key={link}>
-                    {link === "Contact" ? (
-                      <Link href="/contact" className="text-gray-500 hover:text-white transition-colors duration-200 text-sm">
-                        {link}
-                      </Link>
-                    ) : (
-                      <a href="#" className="text-gray-500 hover:text-white transition-colors duration-200 text-sm">
-                        {link}
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          ))}
+          {/* Quick Links */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">Quick Links</h4>
+            <ul className="space-y-3">
+              {footerLinks.quickLinks.map((link) => (
+                <li key={link.name}>
+                  <Link href={link.href} className="text-gray-500 hover:text-white transition-colors duration-200 text-sm">
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
         </div>
 
         {/* Bottom Bar */}
@@ -193,17 +186,6 @@ export default function Footer() {
                 Noor Mohammed
               </a>
             </p>
-          </div>
-          <div className="flex gap-6 text-sm text-gray-600">
-            <a href="#" className="hover:text-white transition-colors">
-              Privacy Policy
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
-              Terms of Service
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
-              Cookies
-            </a>
           </div>
         </motion.div>
       </div>

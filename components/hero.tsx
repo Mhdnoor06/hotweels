@@ -2,8 +2,10 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import gsap from "gsap"
+import { useAuth } from "@/context/auth-context"
 
 // Car data moved outside component to prevent recreation on every render
 const CARS_DATA = [
@@ -240,6 +242,8 @@ const FloatingParticle = memo(function FloatingParticle({
 })
 
 export default function WheelsFramsHero() {
+  const router = useRouter()
+  const { user } = useAuth()
   const containerRef = useRef<HTMLDivElement>(null)
   const leftPanelRef = useRef<HTMLDivElement>(null)
   const rightPanelRef = useRef<HTMLDivElement>(null)
@@ -265,6 +269,15 @@ export default function WheelsFramsHero() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [currentCarIndex, setCurrentCarIndex] = useState(0)
+
+  const handleGetStarted = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setIsMobileMenuOpen(false)
+    router.push(user ? '/collection' : '/login')
+  }, [user, router])
 
   // Memoize current car to prevent unnecessary re-renders
   const currentCar = CARS_DATA[currentCarIndex]
@@ -711,63 +724,104 @@ export default function WheelsFramsHero() {
 
         {/* Mobile Menu Button */}
         <button
-          className="lg:hidden z-50 relative w-8 h-8 flex flex-col justify-center items-center gap-1.5"
+          className={`lg:hidden z-[70] relative w-10 h-10 flex flex-col justify-center items-center gap-1.5 rounded-full transition-colors ${
+            isMobileMenuOpen ? 'bg-white/10' : ''
+          }`}
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Toggle menu"
         >
-          <span className={`w-6 h-0.5 bg-white drop-shadow-lg transition-all duration-300 ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-          <span className={`w-6 h-0.5 bg-white drop-shadow-lg transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0' : ''}`} />
-          <span className={`w-6 h-0.5 bg-white drop-shadow-lg transition-all duration-300 ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+          <span className={`w-6 h-0.5 bg-white drop-shadow-lg transition-all duration-300 origin-center ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+          <span className={`w-6 h-0.5 bg-white drop-shadow-lg transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0 scale-0' : ''}`} />
+          <span className={`w-6 h-0.5 bg-white drop-shadow-lg transition-all duration-300 origin-center ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
         </button>
 
-        {/* Mobile Menu */}
-        <div
-          ref={mobileMenuRef}
-          className={`lg:hidden fixed inset-0 bg-gray-900/95 backdrop-blur-lg z-40 transition-all duration-300 ${
-            isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
-          }`}
-        >
-          <div className="flex flex-col items-center justify-center h-full gap-8">
-            <Link
-              href="/collection"
-              className="text-white text-2xl font-bold hover:opacity-80 transition-colors duration-300"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Collection
-            </Link>
-            <Link
-              href="/wishlist"
-              className="text-white text-2xl font-bold hover:opacity-80 transition-colors duration-300"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Wishlist
-            </Link>
-            <Link
-              href="/orders"
-              className="text-white text-2xl font-bold hover:opacity-80 transition-colors duration-300"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Orders
-            </Link>
-            <Link href="/collection" onClick={() => setIsMobileMenuOpen(false)}>
-              <button
-                className="px-8 py-3 text-lg font-bold rounded-full transition-all duration-300"
-                style={{
-                  backgroundColor: 'white',
-                  color: currentCar.color
-                }}
-              >
-                Get Started
-              </button>
-            </Link>
-          </div>
-        </div>
       </nav>
+
+      {/* Mobile Menu - Moved outside nav for proper full-screen coverage */}
+      <div
+        ref={mobileMenuRef}
+        className={`lg:hidden fixed inset-0 bg-gray-900/95 backdrop-blur-lg z-[60] transition-all duration-300 ${
+          isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
+        }`}
+        onClick={(e) => {
+          // Close menu when clicking the backdrop
+          if (e.target === e.currentTarget) {
+            setIsMobileMenuOpen(false)
+          }
+        }}
+      >
+        {/* Close button */}
+        <button
+          className="absolute top-4 right-4 z-10 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 transition-colors"
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-label="Close menu"
+        >
+          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div className="flex flex-col items-center justify-center min-h-screen py-20 px-6 gap-5 overflow-y-auto">
+          <Link
+            href="/"
+            className="text-white text-xl font-bold hover:text-white/80 transition-colors duration-300 py-2"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Home
+          </Link>
+          <Link
+            href="/collection"
+            className="text-white text-xl font-bold hover:text-white/80 transition-colors duration-300 py-2"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Collection
+          </Link>
+          <Link
+            href="/wishlist"
+            className="text-white text-xl font-bold hover:text-white/80 transition-colors duration-300 py-2"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Wishlist
+          </Link>
+          <Link
+            href="/orders"
+            className="text-white text-xl font-bold hover:text-white/80 transition-colors duration-300 py-2"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Orders
+          </Link>
+          <Link
+            href="/contact"
+            className="text-white text-xl font-bold hover:text-white/80 transition-colors duration-300 py-2"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Contact
+          </Link>
+
+          <div className="w-16 h-0.5 bg-white/20 my-2" />
+
+          <Link
+            href="/collection"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="mt-2"
+          >
+            <button
+              className="px-8 py-3 text-base font-bold rounded-full transition-all duration-300 hover:scale-105 whitespace-nowrap"
+              style={{
+                backgroundColor: 'white',
+                color: currentCar.color
+              }}
+            >
+              Get Started
+            </button>
+          </Link>
+        </div>
+      </div>
 
       {/* Left Section */}
       <div
         ref={leftPanelRef}
-        className="flex-1 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 relative flex flex-col items-center justify-center overflow-hidden min-h-[60vh] lg:min-h-screen"
+        className="flex-1 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 relative flex flex-col items-center justify-center overflow-hidden min-h-[60vh] lg:min-h-screen pt-16 lg:pt-0"
       >
         {/* Animated grid background */}
         <div className="absolute inset-0 opacity-20">
@@ -799,7 +853,7 @@ export default function WheelsFramsHero() {
         />
 
         {/* Speedometer */}
-        <div ref={speedometerRef} className="absolute top-12 sm:top-20 lg:top-48 left-4 sm:left-6 lg:left-8 z-30">
+        <div ref={speedometerRef} className="absolute top-20 sm:top-24 lg:top-48 left-4 sm:left-6 lg:left-8 z-30">
           <div className="relative">
             <svg width="120" height="120" viewBox="0 0 400 400" className="sm:w-[140px] sm:h-[140px] lg:w-[160px] lg:h-[160px]">
               {minorTickElements}
@@ -858,7 +912,7 @@ export default function WheelsFramsHero() {
         </div>
 
         {/* WHEELS FRAMS Logo */}
-        <div ref={wheelsFramsTextRef} className="absolute top-16 sm:top-20 lg:top-24 left-1/2 -translate-x-1/2 z-20 px-6 sm:px-8 md:px-12 text-center w-full max-w-full overflow-visible">
+        <div ref={wheelsFramsTextRef} className="hidden lg:block absolute top-16 sm:top-20 lg:top-24 left-1/2 -translate-x-1/2 z-20 px-6 sm:px-8 md:px-12 text-center w-full max-w-full overflow-visible">
           <span
             className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text tracking-tighter transition-all duration-500 whitespace-nowrap inline-block"
             style={{ backgroundImage: currentGradient.text }}
@@ -999,7 +1053,7 @@ export default function WheelsFramsHero() {
       {/* Right Section */}
       <div
         ref={rightPanelRef}
-        className="w-full lg:w-[450px] relative overflow-hidden flex flex-col justify-between p-6 sm:p-8 lg:p-12 min-h-[40vh] lg:min-h-screen"
+        className="w-full lg:w-[450px] relative overflow-hidden flex flex-col justify-between pt-20 pb-6 px-6 sm:pt-24 sm:pb-8 sm:px-8 lg:p-12 min-h-[40vh] lg:min-h-screen"
       >
         {/* Dynamic color background */}
         <div
