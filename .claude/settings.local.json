@@ -4,7 +4,9 @@
       "Bash(pnpm add:*)",
       "mcp__ide__getDiagnostics",
       "Bash(npm run build:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(xargs ls:*)",
+      "WebFetch(domain:apidocs.shiprocket.in)"
     ],
     "deny": [],
     "ask": []

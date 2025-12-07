@@ -80,6 +80,18 @@ export interface Database {
           shipping_charges: number | null
           shipping_payment_screenshot: string | null
           shipping_payment_status: 'pending' | 'verified' | null
+          // ShipRocket fields
+          shiprocket_order_id: string | null
+          shiprocket_shipment_id: string | null
+          shiprocket_awb_code: string | null
+          shiprocket_courier_id: number | null
+          shiprocket_courier_name: string | null
+          estimated_delivery_date: string | null
+          shipping_label_url: string | null
+          tracking_url: string | null
+          shiprocket_status: string | null
+          pickup_scheduled_date: string | null
+          pickup_token: string | null
           created_at: string
           updated_at: string
         }
@@ -97,6 +109,18 @@ export interface Database {
           shipping_charges?: number | null
           shipping_payment_screenshot?: string | null
           shipping_payment_status?: 'pending' | 'verified' | null
+          // ShipRocket fields
+          shiprocket_order_id?: string | null
+          shiprocket_shipment_id?: string | null
+          shiprocket_awb_code?: string | null
+          shiprocket_courier_id?: number | null
+          shiprocket_courier_name?: string | null
+          estimated_delivery_date?: string | null
+          shipping_label_url?: string | null
+          tracking_url?: string | null
+          shiprocket_status?: string | null
+          pickup_scheduled_date?: string | null
+          pickup_token?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -114,6 +138,18 @@ export interface Database {
           shipping_charges?: number | null
           shipping_payment_screenshot?: string | null
           shipping_payment_status?: 'pending' | 'verified' | null
+          // ShipRocket fields
+          shiprocket_order_id?: string | null
+          shiprocket_shipment_id?: string | null
+          shiprocket_awb_code?: string | null
+          shiprocket_courier_id?: number | null
+          shiprocket_courier_name?: string | null
+          estimated_delivery_date?: string | null
+          shipping_label_url?: string | null
+          tracking_url?: string | null
+          shiprocket_status?: string | null
+          pickup_scheduled_date?: string | null
+          pickup_token?: string | null
           created_at?: string
           updated_at?: string
         }

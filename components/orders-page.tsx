@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Package, ChevronRight, ShoppingBag, ArrowRight, Loader2, RefreshCw } from "lucide-react"
+import { Package, ChevronRight, ShoppingBag, ArrowRight, Loader2, RefreshCw, Truck } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Navbar } from "@/components/navbar"
 import { useAuth } from "@/context/auth-context"
+import { OrderTracking } from "@/components/order-tracking"
 import type { OrderWithItems } from "@/lib/supabase/orders"
 
 export function OrdersPage() {
@@ -280,6 +281,9 @@ export function OrdersPage() {
                               </div>
                             </div>
                           )}
+
+                          {/* Order Tracking */}
+                          <OrderTracking orderId={order.id} orderStatus={order.status} />
                         </div>
                       </motion.div>
                     )}

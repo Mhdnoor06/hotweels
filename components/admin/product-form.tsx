@@ -6,15 +6,9 @@ import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
 import {
-  LayoutDashboard,
   Package,
-  ShoppingCart,
-  Flame,
-  LogOut,
-  Menu,
-  X,
   ArrowLeft,
   Upload,
   Save,
@@ -22,16 +16,12 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react"
-import { uploadProductImage, uploadProductImages } from "@/lib/supabase/storage"
+import { uploadProductImages } from "@/lib/supabase/storage"
 import type { Product } from "@/lib/supabase/database.types"
 import { useAdminAuth } from "@/context/admin-auth-context"
-
-const navItems = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
-  { label: "Products", href: "/admin/products", icon: Package },
-]
+import { AdminPageHeader } from "./admin-page-header"
 
 const seriesOptions = [
   "HW Dream Garage",
@@ -52,8 +42,6 @@ interface ProductFormProps {
 
 export function ProductForm({ productId }: ProductFormProps) {
   const router = useRouter()
-  const pathname = usePathname()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -85,7 +73,7 @@ export function ProductForm({ productId }: ProductFormProps) {
     featured: false,
   })
 
-  const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth()
+  const { isAuthenticated, isLoading: authLoading } = useAdminAuth()
 
   useEffect(() => {
     if (authLoading) return
@@ -129,12 +117,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         })
         .catch(() => setLoading(false))
     }
-  }, [router, isEditing, productId])
-
-  const handleLogout = async () => {
-    await logout()
-    router.push("/admin")
-  }
+  }, [router, isEditing, productId, isAuthenticated, authLoading])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -432,106 +415,21 @@ export function ProductForm({ productId }: ProductFormProps) {
   }, [previewUrls])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/80 shadow-lg lg:shadow-none transform transition-all duration-300 ease-out lg:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
-      >
-        <div className="flex flex-col h-full backdrop-blur-sm">
-          <div className="flex items-center justify-between h-20 px-6 border-b border-gray-200/60 bg-white/50 backdrop-blur-md">
-            <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-              <div className="relative">
-                <Image 
-                  src="/darklogo.jpg" 
-                  alt="Wheels Frams" 
-                  width={100} 
-                  height={100}
-                  className="h-10 w-10 object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
-                  priority
-                />
-              </div>
-              <span className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Admin
-              </span>
-            </Link>
-            <button 
-              onClick={() => setSidebarOpen(false)} 
-              className="lg:hidden text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {navItems.map((item) => {
-              const isActive = pathname?.startsWith(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive 
-                      ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md shadow-red-500/20" 
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
-                  }`}
-                >
-                  {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
-                  )}
-                  <item.icon 
-                    size={20} 
-                    className={`transition-transform duration-200 ${isActive ? "text-white scale-110" : "group-hover:scale-110 text-gray-500 group-hover:text-gray-700"}`} 
-                  />
-                  <span className="relative z-10">{item.label}</span>
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent rounded-xl" />
-                  )}
-                </Link>
-              )
-            })}
-          </nav>
-
-          <div className="p-4 border-t border-gray-200/60 bg-white/30 backdrop-blur-sm">
-            <button
-              onClick={handleLogout}
-              className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200 border border-transparent hover:border-red-100"
-            >
-              <LogOut 
-                size={20} 
-                className="transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" 
-              />
-              <span>Logout</span>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-gray-600">
-              <Menu size={24} />
-            </button>
-            <Link
-              href="/admin/products"
-              className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft size={20} />
-              <span className="hidden sm:inline">Back</span>
-            </Link>
-          </div>
-          <h1 className="text-xl font-semibold text-gray-900">{isEditing ? "Edit Product" : "New Product"}</h1>
-          <div className="w-20" />
-        </header>
-
-        <main className="flex-1 p-4 lg:p-8">
-          {loading ? (
+    <div className="p-4 sm:p-6 lg:p-8">
+      <AdminPageHeader
+        title={isEditing ? "Edit Product" : "New Product"}
+        icon={Package}
+        actions={
+          <Link
+            href="/admin/products"
+            className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft size={20} />
+            <span className="hidden sm:inline">Back</span>
+          </Link>
+        }
+      />
+      {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-red-500" />
             </div>
@@ -986,8 +884,6 @@ export function ProductForm({ productId }: ProductFormProps) {
               </div>
             </form>
           )}
-        </main>
-      </div>
     </div>
   )
 }

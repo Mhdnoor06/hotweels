@@ -2,53 +2,36 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import Link from "next/link"
 import Image from "next/image"
-import { useRouter, usePathname } from "next/navigation"
-import { useAdminAuth } from "@/context/admin-auth-context"
 import {
-  LayoutDashboard,
-  Package,
   ShoppingCart,
-  Settings,
-  Flame,
-  LogOut,
-  Menu,
-  X,
   Search,
   ChevronDown,
   Eye,
   Truck,
   CheckCircle,
   Clock,
+  X,
   XCircle,
   Loader2,
   CreditCard,
   ImageIcon,
   BadgeCheck,
   AlertCircle,
+  PackageCheck,
 } from "lucide-react"
 import type { Order, OrderItem } from "@/lib/supabase/database.types"
+import { ShipRocketFulfillment } from "./shiprocket-fulfillment"
+import { AdminPageHeader } from "./admin-page-header"
 
 type OrderWithItems = Order & {
   order_items: (OrderItem & { product: { name: string; image: string; series: string } | null })[]
   user: { name: string | null; email: string } | null
 }
 
-const navItems = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
-  { label: "Products", href: "/admin/products", icon: Package },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
-]
-
 const statusOptions = ["All", "pending", "confirmed", "shipped", "delivered", "cancelled"]
 
 export function AdminOrders() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
@@ -56,17 +39,37 @@ export function AdminOrders() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [showPaymentScreenshot, setShowPaymentScreenshot] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null)
 
-  useEffect(() => {
-    if (authLoading) return
-    
-    if (!isAuthenticated) {
-      router.push("/admin")
-      return
+  // Helper to check if payment is verified
+  const isPaymentVerified = (order: OrderWithItems): boolean => {
+    // COD orders - check if there's shipping payment that needs verification
+    if (order.payment_method === 'cod') {
+      const shippingCharges = (order as any).shipping_charges || 0
+      const hasShippingScreenshot = !!(order as any).shipping_payment_screenshot
+      const shippingPaymentStatus = (order as any).shipping_payment_status
+
+      // If COD with shipping charges and screenshot uploaded, check if verified
+      if (shippingCharges > 0 && hasShippingScreenshot) {
+        return shippingPaymentStatus === 'verified'
+      }
+      // COD without shipping charges or no screenshot - allow
+      return true
     }
 
+    // Online payment - must be verified
+    return order.payment_status === 'verified'
+  }
+
+  // Show toast message
+  const showToast = (message: string, type: 'error' | 'success' = 'error') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  useEffect(() => {
     fetchOrders()
-  }, [router, isAuthenticated, authLoading])
+  }, [])
 
   const fetchOrders = async () => {
     setLoading(true)
@@ -83,11 +86,6 @@ export function AdminOrders() {
     }
   }
 
-  const handleLogout = async () => {
-    await logout()
-    router.push("/admin")
-  }
-
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,27 +95,6 @@ export function AdminOrders() {
     return matchesSearch && matchesStatus
   })
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    setUpdating(true)
-    try {
-      const response = await fetch('/api/admin/orders', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ orderId, status: newStatus }),
-      })
-      if (response.ok) {
-        setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status: newStatus.toLowerCase() as OrderWithItems['status'] } : order)))
-        if (selectedOrder?.id === orderId) {
-          setSelectedOrder({ ...selectedOrder, status: newStatus.toLowerCase() as OrderWithItems['status'] })
-        }
-      }
-    } catch (err) {
-      console.error('Error updating order status:', err)
-    } finally {
-      setUpdating(false)
-    }
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -197,135 +174,46 @@ export function AdminOrders() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/80 shadow-lg lg:shadow-none transform transition-all duration-300 ease-out lg:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
-      >
-        <div className="flex flex-col h-full backdrop-blur-sm">
-          <div className="flex items-center justify-between h-20 px-6 border-b border-gray-200/60 bg-white/50 backdrop-blur-md">
-            <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-              <div className="relative">
-                <Image 
-                  src="/darklogo.jpg" 
-                  alt="Wheels Frams" 
-                  width={100} 
-                  height={100}
-                  className="h-10 w-10 object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
-                  priority
-                />
-              </div>
-              <span className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Admin
-              </span>
-            </Link>
-            <button 
-              onClick={() => setSidebarOpen(false)} 
-              className="lg:hidden text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive 
-                      ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md shadow-red-500/20" 
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
-                  }`}
-                >
-                  {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
-                  )}
-                  <item.icon 
-                    size={20} 
-                    className={`transition-transform duration-200 ${isActive ? "text-white scale-110" : "group-hover:scale-110 text-gray-500 group-hover:text-gray-700"}`} 
-                  />
-                  <span className="relative z-10">{item.label}</span>
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent rounded-xl" />
-                  )}
-                </Link>
-              )
-            })}
-          </nav>
-
-          <div className="p-4 border-t border-gray-200/60 bg-white/30 backdrop-blur-sm">
-            <button
-              onClick={handleLogout}
-              className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200 border border-transparent hover:border-red-100"
-            >
-              <LogOut 
-                size={20} 
-                className="transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" 
-              />
-              <span>Logout</span>
-            </button>
-          </div>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <AdminPageHeader title="Orders" icon={ShoppingCart} />
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search orders..."
+            className="w-full bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+          />
         </div>
-      </aside>
+        <div className="relative shrink-0">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer w-full sm:w-auto"
+          >
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        </div>
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30 shrink-0">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-gray-600">
-              <Menu size={24} />
-            </button>
-            <h1 className="text-xl font-semibold text-gray-900">Orders</h1>
-          </div>
-        </header>
-
-        <main className="flex-1 p-4 lg:p-8 overflow-x-hidden">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search orders..."
-                className="w-full bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
-              />
-            </div>
-            <div className="relative shrink-0">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-3 pr-10 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer w-full sm:w-auto"
-              >
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Orders Table */}
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-            </div>
-          ) : (
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full">
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="inline-block min-w-full align-middle px-4 sm:px-0">
-                <table className="min-w-full divide-y divide-gray-200">
+      {/* Orders Table */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden w-full">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+              <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-3 sm:px-4 py-3 whitespace-nowrap">
@@ -353,87 +241,97 @@ export function AdminOrders() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
-                      <div className="text-xs sm:text-sm">
-                        <div className="font-medium text-gray-900">{order.id.slice(0, 8)}...</div>
-                        <div className="text-gray-500 mt-0.5">{order.order_items?.length || 0} items</div>
-                        <div className="text-gray-500 sm:hidden mt-0.5">{formatDate(order.created_at)}</div>
-                        <div className="text-gray-500 sm:hidden mt-0.5">{order.user?.name || 'Guest'}</div>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
-                      <div className="text-xs sm:text-sm">
-                        <div className="text-gray-900 font-medium">
-                          {(order.shipping_address as { fullName?: string } | null)?.fullName || order.user?.name || 'Guest'}
+                    <tr
+                      key={order.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="text-xs sm:text-sm">
+                          <div className="font-medium text-gray-900">{order.id.slice(0, 8)}...</div>
+                          <div className="text-gray-500 mt-0.5">{order.order_items?.length || 0} items</div>
+                          <div className="text-gray-500 sm:hidden mt-0.5">{formatDate(order.created_at)}</div>
+                          <div className="text-gray-500 sm:hidden mt-0.5">{order.user?.name || 'Guest'}</div>
                         </div>
-                        <div className="text-gray-500">{order.user?.email || (order.shipping_address as { email?: string } | null)?.email || '-'}</div>
-                        {(order.shipping_address as { phone?: string } | null)?.phone && (
-                          <div className="text-gray-500 text-xs mt-0.5">
-                            {(order.shipping_address as { phone?: string } | null)?.phone}
+                      </td>
+                      <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
+                        <div className="text-xs sm:text-sm">
+                          <div className="text-gray-900 font-medium">
+                            {(order.shipping_address as { fullName?: string } | null)?.fullName || order.user?.name || 'Guest'}
                           </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden md:table-cell">
-                      {formatDate(order.created_at)}
-                    </td>
-                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                      ₹{order.total.toFixed(2)}
-                    </td>
-                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap hidden lg:table-cell">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs text-gray-500 uppercase">{order.payment_method || 'cod'}</span>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit ${getPaymentStatusColor(order.payment_status || 'pending')}`}
+                          <div className="text-gray-500">{order.user?.email || (order.shipping_address as { email?: string } | null)?.email || '-'}</div>
+                          {(order.shipping_address as { phone?: string } | null)?.phone && (
+                            <div className="text-gray-500 text-xs mt-0.5">
+                              {(order.shipping_address as { phone?: string } | null)?.phone}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 hidden md:table-cell">
+                        {formatDate(order.created_at)}
+                      </td>
+                      <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
+                        ₹{order.total.toFixed(2)}
+                      </td>
+                      <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap hidden lg:table-cell">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-gray-500 uppercase">{order.payment_method || 'cod'}</span>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit ${getPaymentStatusColor(order.payment_status || 'pending')}`}
+                          >
+                            {order.payment_status === 'verification_pending' ? (
+                              <AlertCircle size={10} />
+                            ) : order.payment_status === 'verified' ? (
+                              <BadgeCheck size={10} />
+                            ) : null}
+                            {order.payment_status === 'verification_pending' ? 'Pending' : order.payment_status || 'pending'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 sm:px-4 py-3 sm:py-4">
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium border capitalize whitespace-nowrap ${getStatusColor(order.status)}`}
+                          >
+                            {(() => {
+                              const Icon = getStatusIcon(order.status)
+                              return <Icon size={10} className="sm:w-3 sm:h-3 shrink-0" />
+                            })()}
+                            <span>{order.status}</span>
+                          </span>
+                          {/* ShipRocket Status Indicator */}
+                          {order.shiprocket_order_id && (
+                            <span className="inline-flex items-center gap-1 text-xs text-blue-600">
+                              <PackageCheck size={10} />
+                              <span className="hidden sm:inline">
+                                {order.shiprocket_awb_code ? 'AWB: ' + order.shiprocket_awb_code.slice(0, 8) : 'SR Created'}
+                              </span>
+                              <span className="sm:hidden">SR</span>
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-right">
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors inline-flex items-center justify-center"
                         >
-                          {order.payment_status === 'verification_pending' ? (
-                            <AlertCircle size={10} />
-                          ) : order.payment_status === 'verified' ? (
-                            <BadgeCheck size={10} />
-                          ) : null}
-                          {order.payment_status === 'verification_pending' ? 'Pending' : order.payment_status || 'pending'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-4 py-3 sm:py-4">
-                      <span
-                        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-xs font-medium border capitalize whitespace-nowrap ${getStatusColor(order.status)}`}
-                      >
-                        {(() => {
-                          const Icon = getStatusIcon(order.status)
-                          return <Icon size={10} className="sm:w-3 sm:h-3 shrink-0" />
-                        })()}
-                        <span>{order.status}</span>
-                      </span>
-                    </td>
-                    <td className="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-right">
-                      <button
-                        onClick={() => setSelectedOrder(order)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors inline-flex items-center justify-center"
-                      >
-                        <Eye size={16} className="sm:w-[18px] sm:h-[18px]" />
-                      </button>
-                    </td>
-                  </tr>
+                          <Eye size={16} className="sm:w-[18px] sm:h-[18px]" />
+                        </button>
+                      </td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
-              </div>
             </div>
-
-            {filteredOrders.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No orders found</p>
-              </div>
-            )}
           </div>
+
+          {filteredOrders.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No orders found</p>
+            </div>
           )}
-        </main>
-      </div>
+        </div>
+      )}
 
       {/* Order Detail Modal */}
       <AnimatePresence>
@@ -581,7 +479,7 @@ export function AdminOrders() {
                             <span className="text-sm text-gray-600">Shipping Charges</span>
                             <span className="text-sm font-semibold text-gray-900">₹{((selectedOrder as any).shipping_charges || 0).toFixed(2)}</span>
                           </div>
-                          
+
                           {(selectedOrder as any).shipping_payment_screenshot && (
                             <>
                               <button
@@ -597,7 +495,7 @@ export function AdminOrders() {
                               <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                                 <span className="text-xs text-gray-600">Payment Status</span>
                                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                                  (selectedOrder as any).shipping_payment_status === 'verified' 
+                                  (selectedOrder as any).shipping_payment_status === 'verified'
                                     ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
                                     : 'text-amber-600 bg-amber-50 border-amber-200'
                                 }`}>
@@ -625,21 +523,18 @@ export function AdminOrders() {
                                           method: 'PATCH',
                                           headers: { 'Content-Type': 'application/json' },
                                           credentials: 'include',
-                                          body: JSON.stringify({ 
-                                            orderId: selectedOrder.id, 
-                                            shipping_payment_status: 'verified' 
+                                          body: JSON.stringify({
+                                            orderId: selectedOrder.id,
+                                            shipping_payment_status: 'verified'
                                           }),
                                         })
                                         if (response.ok) {
                                           const updatedOrder = { ...selectedOrder, shipping_payment_status: 'verified' as const }
                                           setSelectedOrder(updatedOrder)
-                                          setOrders((prev) => prev.map((order) => 
+                                          setOrders((prev) => prev.map((order) =>
                                             order.id === selectedOrder.id ? updatedOrder : order
                                           ))
-                                          // Auto-confirm order when shipping payment is verified
-                                          if (selectedOrder.status === 'pending') {
-                                            await updateOrderStatus(selectedOrder.id, 'confirmed')
-                                          }
+                                          showToast('Shipping payment verified', 'success')
                                         }
                                       } catch (err) {
                                         console.error('Error verifying shipping payment:', err)
@@ -683,7 +578,7 @@ export function AdminOrders() {
                         state?: string
                         pincode?: string
                       } | null
-                      
+
                       return (
                         <>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -754,29 +649,127 @@ export function AdminOrders() {
                   </div>
                 </div>
 
-                {/* Update Status */}
-                <div>
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-2 sm:mb-3">Update Status</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {["pending", "confirmed", "shipped", "delivered", "cancelled"].map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => updateOrderStatus(selectedOrder.id, status)}
-                        disabled={selectedOrder.status === status || updating}
-                        className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-colors capitalize ${
-                          selectedOrder.status === status
-                            ? "bg-red-500 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 disabled:opacity-50"
-                        }`}
-                      >
-                        {updating && selectedOrder.status !== status ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin mx-auto" /> : status}
-                      </button>
-                    ))}
+                {/* ShipRocket Fulfillment */}
+                <div className="border-t border-gray-200 pt-4 sm:pt-6">
+                  <ShipRocketFulfillment
+                    orderId={selectedOrder.id}
+                    orderStatus={selectedOrder.status}
+                    shiprocketOrderId={selectedOrder.shiprocket_order_id}
+                    shiprocketShipmentId={selectedOrder.shiprocket_shipment_id}
+                    shiprocketAwbCode={selectedOrder.shiprocket_awb_code}
+                    shiprocketCourierName={selectedOrder.shiprocket_courier_name}
+                    shiprocketStatus={selectedOrder.shiprocket_status}
+                    shippingLabelUrl={selectedOrder.shipping_label_url}
+                    trackingUrl={selectedOrder.tracking_url}
+                    pickupScheduledDate={selectedOrder.pickup_scheduled_date}
+                    pickupToken={selectedOrder.pickup_token}
+                    estimatedDeliveryDate={selectedOrder.estimated_delivery_date}
+                    isPaymentVerified={isPaymentVerified(selectedOrder)}
+                    onUpdate={() => {
+                      // Refresh order data
+                      fetchOrders()
+                      // Also refresh selected order
+                      fetch(`/api/admin/orders?orderId=${selectedOrder.id}`, { credentials: 'include' })
+                        .then(res => res.json())
+                        .then(data => {
+                          if (data && !Array.isArray(data)) {
+                            setSelectedOrder(data)
+                          }
+                        })
+                        .catch(console.error)
+                    }}
+                  />
+                </div>
+
+                {/* Order Status Flow - View Only */}
+                <div className="border-t border-gray-200 pt-4 sm:pt-6">
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-2 sm:mb-3">Order Status</h3>
+                  <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-2">
+                    {["pending", "confirmed", "processing", "shipped", "delivered"].map((status, index, arr) => {
+                      const statusOrder = ["pending", "confirmed", "processing", "shipped", "delivered"]
+                      const currentIndex = statusOrder.indexOf(selectedOrder.status)
+                      const thisIndex = statusOrder.indexOf(status)
+                      const isCompleted = thisIndex < currentIndex
+                      const isCurrent = selectedOrder.status === status
+                      const isCancelled = selectedOrder.status === 'cancelled'
+
+                      return (
+                        <div key={status} className="flex items-center">
+                          <div className="flex flex-col items-center">
+                            <div
+                              className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                                isCancelled
+                                  ? 'bg-gray-200 text-gray-400'
+                                  : isCurrent
+                                  ? 'bg-red-500 text-white'
+                                  : isCompleted
+                                  ? 'bg-green-500 text-white'
+                                  : 'bg-gray-200 text-gray-400'
+                              }`}
+                            >
+                              {isCompleted && !isCancelled ? (
+                                <CheckCircle size={14} />
+                              ) : (
+                                index + 1
+                              )}
+                            </div>
+                            <span className={`text-[10px] sm:text-xs mt-1 capitalize whitespace-nowrap ${
+                              isCurrent ? 'text-red-600 font-medium' : isCompleted && !isCancelled ? 'text-green-600' : 'text-gray-400'
+                            }`}>
+                              {status}
+                            </span>
+                          </div>
+                          {index < arr.length - 1 && (
+                            <div className={`w-4 sm:w-8 h-0.5 mx-1 ${
+                              isCompleted && !isCancelled ? 'bg-green-500' : 'bg-gray-200'
+                            }`} />
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
+                  {selectedOrder.status === 'cancelled' && (
+                    <div className="mt-2 flex items-center gap-2 text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                      <XCircle size={16} />
+                      <span className="text-sm font-medium">Order Cancelled</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-400 mt-2">
+                    Status updates automatically based on ShipRocket actions
+                  </p>
                 </div>
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className={`fixed bottom-4 right-4 z-[70] px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 ${
+              toast.type === 'error'
+                ? 'bg-red-500 text-white'
+                : 'bg-emerald-500 text-white'
+            }`}
+          >
+            {toast.type === 'error' ? (
+              <AlertCircle size={18} />
+            ) : (
+              <CheckCircle size={18} />
+            )}
+            <span className="text-sm font-medium">{toast.message}</span>
+            <button
+              onClick={() => setToast(null)}
+              className="ml-2 p-1 hover:bg-white/20 rounded transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -787,7 +780,7 @@ export function AdminOrders() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 z-60 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4"
             onClick={() => setShowPaymentScreenshot(false)}
           >
             <motion.div
