@@ -3,6 +3,21 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
+// CORS headers for Shiprocket webhook
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, x-shiprocket-signature',
+}
+
+/**
+ * OPTIONS /api/webhooks/shiprocket
+ * Handle CORS preflight requests
+ */
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders })  // Empty response for preflight requests
+}
+
 /**
  * ShipRocket Webhook Payload Structure
  * This endpoint receives tracking updates from ShipRocket
@@ -90,7 +105,7 @@ export async function POST(request: NextRequest) {
     // If webhook secret is configured, verify it
     if (expectedSecret && webhookSecret !== expectedSecret) {
       console.warn('Invalid ShipRocket webhook signature')
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401, headers: corsHeaders })  // Add CORS headers to response
     }
 
     const payload: ShipRocketWebhookPayload = await request.json()
@@ -99,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!payload.awb) {
       console.error('Missing AWB in webhook payload')
-      return NextResponse.json({ error: 'Missing AWB' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing AWB' }, { status: 400, headers: corsHeaders })  // Add CORS headers to response
     }
 
     // Find order by AWB code
@@ -115,7 +130,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Order not found, webhook acknowledged'
-      })
+      }, { headers: corsHeaders } )  // Add CORS headers to response
     }
 
     const typedOrder = order as unknown as OrderForWebhook
@@ -177,7 +192,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Failed to update order'
-      }, { status: 500 })
+      }, { status: 500, headers: corsHeaders })  // Add CORS headers to response
     }
 
     console.log(`Order ${typedOrder.id} updated via webhook:`, updateData)
@@ -187,13 +202,13 @@ export async function POST(request: NextRequest) {
       message: 'Webhook processed successfully',
       orderId: typedOrder.id,
       newStatus: updateData.shiprocket_status,
-    })
+    }, { headers: corsHeaders })  // Add CORS headers to response
   } catch (error) {
     console.error('ShipRocket webhook error:', error)
 
     return NextResponse.json(
       { error: 'Webhook processing failed' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }  // Add CORS headers to response
     )
   }
 }
@@ -206,5 +221,5 @@ export async function GET() {
   return NextResponse.json({
     status: 'ok',
     message: 'ShipRocket webhook endpoint is active'
-  })
+  }, { headers: corsHeaders })  // Add CORS headers to response
 }
