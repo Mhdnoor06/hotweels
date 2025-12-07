@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-shiprocket-signature',
+  'Access-Control-Allow-Headers': 'Content-Type, x-api-key',
 }
 
 /**
@@ -99,13 +99,13 @@ const STATUS_MAP: Record<number, { shiprocketStatus: string; orderStatus?: strin
 export async function POST(request: NextRequest) {
   try {
     // Verify webhook secret (optional, but recommended)
-    const webhookSecret = request.headers.get('x-shiprocket-signature')
+    const webhookSecret = request.headers.get('x-api-key')
     const expectedSecret = process.env.SHIPROCKET_WEBHOOK_SECRET
 
     // If webhook secret is configured, verify it
     if (expectedSecret && webhookSecret !== expectedSecret) {
       console.warn('Invalid ShipRocket webhook signature')
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401, headers: corsHeaders })  // Add CORS headers to response
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 200, headers: corsHeaders })  // Add CORS headers to response
     }
 
     const payload: ShipRocketWebhookPayload = await request.json()
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!payload.awb) {
       console.error('Missing AWB in webhook payload')
-      return NextResponse.json({ error: 'Missing AWB' }, { status: 400, headers: corsHeaders })  // Add CORS headers to response
+      return NextResponse.json({ error: 'Missing AWB' }, { status: 200, headers: corsHeaders })  // Add CORS headers to response
     }
 
     // Find order by AWB code
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Failed to update order'
-      }, { status: 500, headers: corsHeaders })  // Add CORS headers to response
+      }, { status: 200, headers: corsHeaders })  // Add CORS headers to response
     }
 
     console.log(`Order ${typedOrder.id} updated via webhook:`, updateData)
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: 'Webhook processing failed' },
-      { status: 500, headers: corsHeaders }  // Add CORS headers to response
+      { status: 200, headers: corsHeaders }  // Add CORS headers to response
     )
   }
 }
