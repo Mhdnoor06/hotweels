@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
+  Home,
 } from "lucide-react"
 
 interface NavItem {
@@ -209,11 +210,18 @@ export default function AdminDashboardLayout({
             })}
           </nav>
 
-          {/* Logout */}
-          <div className="p-4 border-t border-gray-200">
+          {/* Bottom Actions */}
+          <div className="p-4 border-t border-gray-200 space-y-1">
+            <Link
+              href="/"
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            >
+              <Home size={20} />
+              Back to Store
+            </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
             >
               <LogOut size={20} />
               Logout
