@@ -181,9 +181,37 @@ export function ShipRocketFulfillment({
         )}
       </div>
 
-      {/* Progress Steps */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <div className="flex items-center justify-between">
+      {/* Progress Steps - Mobile Scrollable / Desktop Grid */}
+      <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+        {/* Mobile: Vertical compact layout */}
+        <div className="sm:hidden space-y-2">
+          {steps.map((step, index) => (
+            <div key={step.label} className="flex items-center gap-3">
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                  step.done
+                    ? 'bg-green-500 text-white'
+                    : index === currentStep
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 text-gray-400'
+                }`}
+              >
+                {step.done ? (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                ) : (
+                  <step.icon className="w-3.5 h-3.5" />
+                )}
+              </div>
+              <span className={`text-xs ${step.done || index === currentStep ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+                {step.label}
+              </span>
+              {step.done && <CheckCircle2 className="w-3.5 h-3.5 text-green-500 ml-auto" />}
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: Horizontal layout */}
+        <div className="hidden sm:flex items-center justify-between">
           {steps.map((step, index) => (
             <div key={step.label} className="flex items-center">
               <div className="flex flex-col items-center">
@@ -202,12 +230,12 @@ export function ShipRocketFulfillment({
                     <step.icon className="w-4 h-4" />
                   )}
                 </div>
-                <span className={`text-xs mt-1 ${step.done || index === currentStep ? 'text-gray-900' : 'text-gray-400'}`}>
+                <span className={`text-xs mt-1 text-center ${step.done || index === currentStep ? 'text-gray-900' : 'text-gray-400'}`}>
                   {step.label}
                 </span>
               </div>
               {index < steps.length - 1 && (
-                <div className={`w-8 h-0.5 mx-1 ${step.done ? 'bg-green-500' : 'bg-gray-200'}`} />
+                <div className={`w-6 lg:w-8 h-0.5 mx-1 ${step.done ? 'bg-green-500' : 'bg-gray-200'}`} />
               )}
             </div>
           ))}
@@ -216,39 +244,39 @@ export function ShipRocketFulfillment({
 
       {/* Info Cards */}
       {shiprocketOrderId && (
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="bg-gray-50 rounded-lg p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
+          <div className="bg-gray-50 rounded-lg p-2.5 sm:p-3">
             <p className="text-gray-500 text-xs">SR Order ID</p>
-            <p className="font-mono text-gray-900">{shiprocketOrderId}</p>
+            <p className="font-mono text-gray-900 text-xs sm:text-sm truncate">{shiprocketOrderId}</p>
           </div>
           {shiprocketAwbCode && (
-            <div className="bg-gray-50 rounded-lg p-3">
+            <div className="bg-gray-50 rounded-lg p-2.5 sm:p-3">
               <p className="text-gray-500 text-xs">AWB Code</p>
-              <p className="font-mono text-gray-900">{shiprocketAwbCode}</p>
+              <p className="font-mono text-gray-900 text-xs sm:text-sm truncate">{shiprocketAwbCode}</p>
             </div>
           )}
           {shiprocketCourierName && (
-            <div className="bg-gray-50 rounded-lg p-3">
+            <div className="bg-gray-50 rounded-lg p-2.5 sm:p-3">
               <p className="text-gray-500 text-xs">Courier</p>
-              <p className="text-gray-900">{shiprocketCourierName}</p>
+              <p className="text-gray-900 text-xs sm:text-sm truncate">{shiprocketCourierName}</p>
             </div>
           )}
           {estimatedDeliveryDate && (
-            <div className="bg-gray-50 rounded-lg p-3">
+            <div className="bg-gray-50 rounded-lg p-2.5 sm:p-3">
               <p className="text-gray-500 text-xs">Est. Delivery</p>
-              <p className="text-gray-900">{new Date(estimatedDeliveryDate).toLocaleDateString()}</p>
+              <p className="text-gray-900 text-xs sm:text-sm">{new Date(estimatedDeliveryDate).toLocaleDateString()}</p>
             </div>
           )}
           {pickupScheduledDate && (
-            <div className="bg-gray-50 rounded-lg p-3">
+            <div className="bg-gray-50 rounded-lg p-2.5 sm:p-3">
               <p className="text-gray-500 text-xs">Pickup Date</p>
-              <p className="text-gray-900">{new Date(pickupScheduledDate).toLocaleDateString()}</p>
+              <p className="text-gray-900 text-xs sm:text-sm">{new Date(pickupScheduledDate).toLocaleDateString()}</p>
             </div>
           )}
           {pickupToken && (
-            <div className="bg-gray-50 rounded-lg p-3">
+            <div className="bg-gray-50 rounded-lg p-2.5 sm:p-3">
               <p className="text-gray-500 text-xs">Pickup Token</p>
-              <p className="font-mono text-gray-900">{pickupToken}</p>
+              <p className="font-mono text-gray-900 text-xs sm:text-sm truncate">{pickupToken}</p>
             </div>
           )}
         </div>
@@ -275,10 +303,10 @@ export function ShipRocketFulfillment({
           <button
             onClick={() => handleAction('create', 'create')}
             disabled={loading === 'create'}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
             {loading === 'create' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
-            Create ShipRocket Order
+            <span>Create ShipRocket Order</span>
           </button>
         )}
 
@@ -287,10 +315,10 @@ export function ShipRocketFulfillment({
           <button
             onClick={() => handleAction('sync', 'sync')}
             disabled={loading === 'sync'}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
             {loading === 'sync' ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            Sync from ShipRocket
+            <span>Sync from ShipRocket</span>
           </button>
         )}
 
@@ -299,10 +327,10 @@ export function ShipRocketFulfillment({
           <button
             onClick={() => handleAction('awb', 'awb')}
             disabled={loading === 'awb'}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
             {loading === 'awb' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-            Generate AWB
+            <span>Generate AWB</span>
           </button>
         )}
 
@@ -312,15 +340,15 @@ export function ShipRocketFulfillment({
             <button
               onClick={() => handleAction('pickup', 'pickup')}
               disabled={loading === 'pickup'}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
             >
               {loading === 'pickup' ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-              Schedule Pickup
+              <span>Schedule Pickup</span>
             </button>
             <div className="flex items-start gap-2 px-2 py-1.5 bg-blue-50 rounded-lg">
               <Info className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
               <p className="text-xs text-blue-700">
-                ShipRocket will automatically assign the pickup date based on courier availability.
+                ShipRocket will automatically assign the pickup date.
               </p>
             </div>
           </div>
@@ -332,10 +360,10 @@ export function ShipRocketFulfillment({
             <button
               onClick={() => handleAction('label', 'label', 'GET')}
               disabled={loading === 'label'}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
             >
               {loading === 'label' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
-              Print Shipping Label
+              <span>Print Shipping Label</span>
             </button>
             {shippingLabelUrl && (
               <div className="flex gap-2">
@@ -343,18 +371,18 @@ export function ShipRocketFulfillment({
                   href={shippingLabelUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Open Saved Label
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Open Label</span>
                 </a>
                 <button
                   onClick={() => handleAction('label', 'label', 'POST')}
                   disabled={loading === 'label'}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 rounded-lg text-xs font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 rounded-lg text-xs font-medium transition-colors"
                 >
-                  {loading === 'label' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  Regenerate
+                  {loading === 'label' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 shrink-0" />}
+                  <span>Regenerate</span>
                 </button>
               </div>
             )}
@@ -366,10 +394,10 @@ export function ShipRocketFulfillment({
           <button
             onClick={() => handleAction('track', 'track', 'GET')}
             disabled={loading === 'track'}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
             {loading === 'track' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-            Track Shipment
+            <span>Track Shipment</span>
           </button>
         )}
 
@@ -379,10 +407,10 @@ export function ShipRocketFulfillment({
             href={trackingUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-200"
+            className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors border border-gray-200"
           >
-            <ExternalLink className="w-4 h-4" />
-            View on ShipRocket
+            <ExternalLink className="w-4 h-4 shrink-0" />
+            <span>View on ShipRocket</span>
           </a>
         )}
 
@@ -392,25 +420,25 @@ export function ShipRocketFulfillment({
             {!showCancelConfirm ? (
               <button
                 onClick={() => setShowCancelConfirm(true)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 text-red-600 hover:bg-red-50 rounded-lg text-xs sm:text-sm font-medium transition-colors"
               >
                 <XCircle className="w-4 h-4" />
-                Cancel Shipment
+                <span>Cancel Shipment</span>
               </button>
             ) : (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 sm:p-3 space-y-2">
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                  <p className="text-sm text-red-700">
-                    Are you sure? This may incur cancellation charges if pickup has been scheduled.
+                  <p className="text-xs sm:text-sm text-red-700">
+                    Are you sure? This may incur cancellation charges.
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowCancelConfirm(false)}
-                    className="flex-1 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="flex-1 py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    No, Keep It
+                    No, Keep
                   </button>
                   <button
                     onClick={() => {
@@ -418,7 +446,7 @@ export function ShipRocketFulfillment({
                       setShowCancelConfirm(false)
                     }}
                     disabled={loading === 'cancel'}
-                    className="flex-1 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium"
+                    className="flex-1 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-medium"
                   >
                     {loading === 'cancel' ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Yes, Cancel'}
                   </button>
@@ -431,12 +459,12 @@ export function ShipRocketFulfillment({
 
       {/* Payment Not Verified Message */}
       {!isPaymentVerified && !isCancelled && !isDelivered && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 sm:p-3 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-          <div className="text-sm text-amber-700">
+          <div className="text-xs sm:text-sm text-amber-700">
             <p className="font-medium">Payment Verification Required</p>
             <p className="text-xs mt-0.5">
-              Please verify the payment before creating a ShipRocket order or changing order status.
+              Verify payment before creating ShipRocket order.
             </p>
           </div>
         </div>
@@ -444,12 +472,12 @@ export function ShipRocketFulfillment({
 
       {/* Cancelled Order Message */}
       {isCancelled && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 sm:p-3 flex items-start gap-2">
           <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-          <div className="text-sm text-red-700">
+          <div className="text-xs sm:text-sm text-red-700">
             <p className="font-medium">Order Cancelled</p>
             <p className="text-xs mt-0.5">
-              This order has been cancelled. No further shipping actions can be performed.
+              No further shipping actions available.
             </p>
           </div>
         </div>
@@ -457,12 +485,12 @@ export function ShipRocketFulfillment({
 
       {/* Delivered Order Message */}
       {isDelivered && !isCancelled && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start gap-2">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 sm:p-3 flex items-start gap-2">
           <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-          <div className="text-sm text-green-700">
+          <div className="text-xs sm:text-sm text-green-700">
             <p className="font-medium">Order Delivered</p>
             <p className="text-xs mt-0.5">
-              This order has been successfully delivered.
+              Successfully delivered.
             </p>
           </div>
         </div>
@@ -470,13 +498,12 @@ export function ShipRocketFulfillment({
 
       {/* Order not ready message */}
       {!shiprocketOrderId && !canCreateShipRocket && !isCancelled && !isDelivered && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2.5 sm:p-3 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
-          <div className="text-sm text-yellow-700">
-            <p className="font-medium">Order not ready for shipping</p>
+          <div className="text-xs sm:text-sm text-yellow-700">
+            <p className="font-medium">Not ready for shipping</p>
             <p className="text-xs mt-0.5">
-              Cannot create ShipRocket shipment for orders that are already shipped, delivered or cancelled.
-              Current status: {orderStatus}
+              Status: {orderStatus}
             </p>
           </div>
         </div>
@@ -484,14 +511,17 @@ export function ShipRocketFulfillment({
 
       {/* Tracking Modal */}
       {showTracking && trackingData && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowTracking(false)}>
-          <div className="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setShowTracking(false)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-md max-h-[85vh] sm:max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Drag handle for mobile */}
+            <div className="sm:hidden w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3" />
+
             <div className="p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-              <div>
-                <h3 className="font-semibold text-gray-900">Tracking Details</h3>
-                <p className="text-sm text-gray-500">AWB: {trackingData.awb}</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Tracking Details</h3>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">AWB: {trackingData.awb}</p>
               </div>
-              <button onClick={() => setShowTracking(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowTracking(false)} className="p-2 hover:bg-gray-100 rounded-lg shrink-0 ml-2">
                 <XCircle className="w-5 h-5 text-gray-400" />
               </button>
             </div>
@@ -500,9 +530,9 @@ export function ShipRocketFulfillment({
               {/* Current Status */}
               <div className="bg-blue-50 rounded-lg p-3">
                 <p className="text-xs text-blue-600 font-medium">Current Status</p>
-                <p className="text-lg font-semibold text-blue-900">{trackingData.statusLabel}</p>
+                <p className="text-base sm:text-lg font-semibold text-blue-900">{trackingData.statusLabel}</p>
                 {trackingData.estimatedDelivery && (
-                  <p className="text-sm text-blue-700 mt-1">
+                  <p className="text-xs sm:text-sm text-blue-700 mt-1">
                     Est. Delivery: {new Date(trackingData.estimatedDelivery).toLocaleDateString()}
                   </p>
                 )}
@@ -510,19 +540,19 @@ export function ShipRocketFulfillment({
 
               {/* Events Timeline */}
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Tracking History</h4>
+                <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-3">Tracking History</h4>
                 <div className="space-y-3">
                   {trackingData.events.map((event, index) => (
                     <div key={index} className="flex gap-3">
                       <div className="flex flex-col items-center">
-                        <div className={`w-2 h-2 rounded-full ${index === 0 ? 'bg-blue-500' : 'bg-gray-300'}`} />
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${index === 0 ? 'bg-blue-500' : 'bg-gray-300'}`} />
                         {index < trackingData.events.length - 1 && (
                           <div className="w-0.5 h-full bg-gray-200 my-1" />
                         )}
                       </div>
-                      <div className="flex-1 pb-3">
-                        <p className="text-sm font-medium text-gray-900">{event.activity}</p>
-                        <p className="text-xs text-gray-500">{event.location}</p>
+                      <div className="flex-1 pb-3 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-gray-900">{event.activity}</p>
+                        <p className="text-xs text-gray-500 truncate">{event.location}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
                           {new Date(event.date).toLocaleString()}
                         </p>
@@ -538,7 +568,7 @@ export function ShipRocketFulfillment({
                   href={trackingData.trackingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" />
                   View Full Tracking

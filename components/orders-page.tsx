@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
 import { Package, ChevronRight, ShoppingBag, ArrowRight, Loader2, RefreshCw, Truck } from "lucide-react"
 import Link from "next/link"
@@ -19,41 +19,56 @@ export function OrdersPage() {
   const [error, setError] = useState<string | null>(null)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
 
-  // Fetch orders when user is authenticated
-  useEffect(() => {
-    async function fetchOrders() {
-      if (!user) {
-        setOrders([])
-        setIsLoading(false)
-        return
-      }
+  // Track if we've already fetched orders to prevent refetch on tab/window focus
+  const hasFetchedRef = useRef(false)
+  const currentUserIdRef = useRef<string | null>(null)
 
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const response = await fetch('/api/orders', {
-          headers: getAuthHeaders(),
-        })
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch orders')
-        }
-
-        setOrders(data.orders || [])
-      } catch (err) {
-        console.error('Error fetching orders:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load orders')
-      } finally {
-        setIsLoading(false)
-      }
+  // Fetch orders function
+  const fetchOrders = useCallback(async (forceRefresh = false) => {
+    if (!user) {
+      setOrders([])
+      setIsLoading(false)
+      hasFetchedRef.current = false
+      currentUserIdRef.current = null
+      return
     }
 
+    // Skip if already fetched for this user (unless forced)
+    if (!forceRefresh && hasFetchedRef.current && currentUserIdRef.current === user.id) {
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/orders', {
+        headers: getAuthHeaders(),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch orders')
+      }
+
+      setOrders(data.orders || [])
+      hasFetchedRef.current = true
+      currentUserIdRef.current = user.id
+    } catch (err) {
+      console.error('Error fetching orders:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load orders')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user, getAuthHeaders])
+
+  // Fetch orders when user is authenticated
+  useEffect(() => {
     if (!authLoading) {
       fetchOrders()
     }
-  }, [user, authLoading, getAuthHeaders])
+  }, [authLoading, fetchOrders])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -136,7 +151,7 @@ export function OrdersPage() {
               <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 text-center">Failed to load orders</h3>
               <p className="text-sm sm:text-base text-gray-500 mb-6 sm:mb-8 text-center max-w-md">{error}</p>
               <Button
-                onClick={() => window.location.reload()}
+                onClick={() => fetchOrders(true)}
                 className="bg-red-500 hover:bg-red-600 flex items-center gap-2 text-sm sm:text-base"
               >
                 <RefreshCw className="w-4 h-4" />

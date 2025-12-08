@@ -81,7 +81,7 @@ export function PaymentFlipCard({ settings, onPaymentComplete, isProcessing, amo
     <div className="w-full max-w-md mx-auto">
       {/* Flip Card Container */}
       <div
-        className="relative w-full h-[380px] sm:h-[400px] cursor-pointer"
+        className="relative w-full h-[440px] sm:h-[470px] cursor-pointer"
         style={{ perspective: "1000px" }}
         onClick={() => !showUploadModal && setIsFlipped(!isFlipped)}
       >
@@ -182,31 +182,31 @@ export function PaymentFlipCard({ settings, onPaymentComplete, isProcessing, amo
             className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden"
             style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           >
-            <div className="h-full bg-gradient-to-br from-red-600 via-red-500 to-orange-500 p-6 flex flex-col">
-              {/* Header */}
-              <div className="text-center mb-3">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2">
-                  <QrCode className="w-6 h-6 text-red-500" />
+            <div className="h-full bg-gradient-to-br from-red-600 via-red-500 to-orange-500 p-4 sm:p-6 flex flex-col">
+              {/* Header - Compact on mobile */}
+              <div className="text-center mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-1.5 sm:mb-2">
+                  <QrCode className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
                 </div>
-                <h3 className="text-lg font-bold text-white">Scan & Pay</h3>
+                <h3 className="text-base sm:text-lg font-bold text-white">Scan & Pay</h3>
                 {amount && (
-                  <div className="mt-2 px-3 py-1.5 bg-white/20 rounded-lg inline-block">
-                    <p className="text-white text-lg font-bold">₹{amount.toFixed(2)}</p>
+                  <div className="mt-1.5 sm:mt-2 px-3 py-1 sm:py-1.5 bg-white/20 rounded-lg inline-block">
+                    <p className="text-white text-base sm:text-lg font-bold">₹{amount.toFixed(2)}</p>
                   </div>
                 )}
-                <p className="text-white/80 text-xs mt-1">Use any UPI app to pay</p>
+                <p className="text-white/80 text-[10px] sm:text-xs mt-1">Use any UPI app to pay</p>
               </div>
 
               {/* QR Code */}
-              <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0">
                 {settings.upi_qr_code ? (
-                  <div className="bg-white p-2.5 rounded-xl shadow-lg">
+                  <div className="bg-white p-2 sm:p-3 rounded-xl shadow-lg">
                     <Image
                       src={settings.upi_qr_code}
                       alt="UPI QR Code"
-                      width={140}
-                      height={140}
-                      className="w-36 h-36 object-contain"
+                      width={180}
+                      height={180}
+                      className="w-40 h-40 sm:w-44 sm:h-44 object-contain"
                       unoptimized={settings.upi_qr_code.startsWith('data:') || settings.upi_qr_code.includes('supabase')}
                       onError={(e) => {
                         console.error('Failed to load QR code image:', settings.upi_qr_code)
@@ -215,7 +215,7 @@ export function PaymentFlipCard({ settings, onPaymentComplete, isProcessing, amo
                     />
                   </div>
                 ) : (
-                  <div className="w-36 h-36 bg-white/20 rounded-xl flex items-center justify-center">
+                  <div className="w-40 h-40 sm:w-44 sm:h-44 bg-white/20 rounded-xl flex items-center justify-center">
                     <p className="text-white/60 text-sm">QR not available</p>
                   </div>
                 )}
@@ -227,21 +227,21 @@ export function PaymentFlipCard({ settings, onPaymentComplete, isProcessing, amo
                       e.stopPropagation()
                       handleCopyUPI()
                     }}
-                    className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                    className="mt-2 sm:mt-3 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors max-w-full"
                   >
-                    <span className="text-white font-medium text-sm">{settings.upi_id}</span>
+                    <span className="text-white font-medium text-xs sm:text-sm truncate">{settings.upi_id}</span>
                     {copiedUPI ? (
-                      <Check className="w-4 h-4 text-white" />
+                      <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white shrink-0" />
                     ) : (
-                      <Copy className="w-4 h-4 text-white/80" />
+                      <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/80 shrink-0" />
                     )}
                   </button>
                 )}
               </div>
 
               {/* Flip Hint */}
-              <div className="text-center mt-3">
-                <p className="text-white/60 text-xs">Tap to see contact details</p>
+              <div className="text-center mt-2 sm:mt-3">
+                <p className="text-white/60 text-[10px] sm:text-xs">Tap to see contact details</p>
                 <div className="flex justify-center gap-1 mt-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-red-300"></div>
                   <div className="w-1.5 h-1.5 rounded-full bg-white"></div>

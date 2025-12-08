@@ -42,6 +42,7 @@ export default function CheckoutPage() {
     state: "",
     pincode: "",
   })
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod")
   const [transactionId, setTransactionId] = useState("")
   const [discountCode, setDiscountCode] = useState("")
@@ -148,10 +149,19 @@ export default function CheckoutPage() {
   }, [items, authLoading, router, orderPlaced])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }))
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
   }
 
   const handleApplyDiscount = () => {
@@ -167,16 +177,29 @@ export default function CheckoutPage() {
   }
 
   const validateDetails = () => {
-    if (!formData.fullName || !formData.email || !formData.phone ||
-        !formData.address || !formData.city || !formData.state || !formData.pincode) {
-      setError("Please fill in all required fields")
+    const errors: Record<string, string> = {}
+
+    if (!formData.fullName.trim()) errors.fullName = "Full name is required"
+    if (!formData.email.trim()) errors.email = "Email is required"
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = "Invalid email format"
+    if (!formData.phone.trim()) errors.phone = "Phone number is required"
+    else if (!/^[+]?[\d\s-]{10,}$/.test(formData.phone.replace(/\s/g, ''))) errors.phone = "Invalid phone number"
+    if (!formData.address.trim()) errors.address = "Street address is required"
+    if (!formData.city.trim()) errors.city = "City is required"
+    if (!formData.state.trim()) errors.state = "State is required"
+    if (!formData.pincode.trim()) errors.pincode = "PIN code is required"
+    else if (!/^[0-9]{6}$/.test(formData.pincode)) errors.pincode = "Enter valid 6-digit PIN"
+
+    setFieldErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      // Scroll to first error field on mobile
+      const firstErrorField = Object.keys(errors)[0]
+      const element = document.querySelector(`[name="${firstErrorField}"]`)
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return false
     }
-    if (!/^[0-9]{6}$/.test(formData.pincode)) {
-      setError("Please enter a valid 6-digit PIN code")
-      return false
-    }
-    setError(null)
+
     return true
   }
 
@@ -360,37 +383,57 @@ export default function CheckoutPage() {
                       </h2>
                       <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Full Name *</label>
+                          <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${fieldErrors.fullName ? 'text-red-600' : 'text-gray-700'}`}>
+                            Full Name *
+                          </label>
                           <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                            <User className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 ${fieldErrors.fullName ? 'text-red-400' : 'text-gray-400'}`} />
                             <input
                               type="text"
                               name="fullName"
                               value={formData.fullName}
                               onChange={handleInputChange}
                               required
-                              className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                                fieldErrors.fullName
+                                  ? 'border-2 border-red-500 bg-red-50'
+                                  : 'border border-gray-300'
+                              }`}
                             />
                           </div>
+                          {fieldErrors.fullName && (
+                            <p className="mt-1 text-xs text-red-600">{fieldErrors.fullName}</p>
+                          )}
                         </div>
                         <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Email *</label>
+                          <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${fieldErrors.email ? 'text-red-600' : 'text-gray-700'}`}>
+                            Email *
+                          </label>
                           <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                            <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 ${fieldErrors.email ? 'text-red-400' : 'text-gray-400'}`} />
                             <input
                               type="email"
                               name="email"
                               value={formData.email}
                               onChange={handleInputChange}
                               required
-                              className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                                fieldErrors.email
+                                  ? 'border-2 border-red-500 bg-red-50'
+                                  : 'border border-gray-300'
+                              }`}
                             />
                           </div>
+                          {fieldErrors.email && (
+                            <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+                          )}
                         </div>
                         <div className="sm:col-span-2">
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Phone Number *</label>
+                          <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${fieldErrors.phone ? 'text-red-600' : 'text-gray-700'}`}>
+                            Phone Number *
+                          </label>
                           <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                            <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 ${fieldErrors.phone ? 'text-red-400' : 'text-gray-400'}`} />
                             <input
                               type="tel"
                               name="phone"
@@ -398,9 +441,16 @@ export default function CheckoutPage() {
                               onChange={handleInputChange}
                               required
                               placeholder="+91 XXXXX XXXXX"
-                              className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                                fieldErrors.phone
+                                  ? 'border-2 border-red-500 bg-red-50'
+                                  : 'border border-gray-300'
+                              }`}
                             />
                           </div>
+                          {fieldErrors.phone && (
+                            <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -413,9 +463,11 @@ export default function CheckoutPage() {
                       </h2>
                       <div className="space-y-3 sm:space-y-4">
                         <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Street Address *</label>
+                          <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${fieldErrors.address ? 'text-red-600' : 'text-gray-700'}`}>
+                            Street Address *
+                          </label>
                           <div className="relative">
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                            <MapPin className={`absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 ${fieldErrors.address ? 'text-red-400' : 'text-gray-400'}`} />
                             <input
                               type="text"
                               name="address"
@@ -423,35 +475,62 @@ export default function CheckoutPage() {
                               onChange={handleInputChange}
                               required
                               placeholder="House/Flat No., Street, Area"
-                              className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                                fieldErrors.address
+                                  ? 'border-2 border-red-500 bg-red-50'
+                                  : 'border border-gray-300'
+                              }`}
                             />
                           </div>
+                          {fieldErrors.address && (
+                            <p className="mt-1 text-xs text-red-600">{fieldErrors.address}</p>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                           <div className="col-span-2 sm:col-span-1">
-                            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">City *</label>
+                            <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${fieldErrors.city ? 'text-red-600' : 'text-gray-700'}`}>
+                              City *
+                            </label>
                             <input
                               type="text"
                               name="city"
                               value={formData.city}
                               onChange={handleInputChange}
                               required
-                              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                                fieldErrors.city
+                                  ? 'border-2 border-red-500 bg-red-50'
+                                  : 'border border-gray-300'
+                              }`}
                             />
+                            {fieldErrors.city && (
+                              <p className="mt-1 text-xs text-red-600">{fieldErrors.city}</p>
+                            )}
                           </div>
                           <div>
-                            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">State *</label>
+                            <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${fieldErrors.state ? 'text-red-600' : 'text-gray-700'}`}>
+                              State *
+                            </label>
                             <input
                               type="text"
                               name="state"
                               value={formData.state}
                               onChange={handleInputChange}
                               required
-                              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                                fieldErrors.state
+                                  ? 'border-2 border-red-500 bg-red-50'
+                                  : 'border border-gray-300'
+                              }`}
                             />
+                            {fieldErrors.state && (
+                              <p className="mt-1 text-xs text-red-600">{fieldErrors.state}</p>
+                            )}
                           </div>
                           <div>
-                            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">PIN Code *</label>
+                            <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${fieldErrors.pincode ? 'text-red-600' : 'text-gray-700'}`}>
+                              PIN Code *
+                            </label>
                             <input
                               type="text"
                               name="pincode"
@@ -460,8 +539,15 @@ export default function CheckoutPage() {
                               required
                               pattern="[0-9]{6}"
                               maxLength={6}
-                              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                                fieldErrors.pincode
+                                  ? 'border-2 border-red-500 bg-red-50'
+                                  : 'border border-gray-300'
+                              }`}
                             />
+                            {fieldErrors.pincode && (
+                              <p className="mt-1 text-xs text-red-600">{fieldErrors.pincode}</p>
+                            )}
                           </div>
                         </div>
                       </div>
