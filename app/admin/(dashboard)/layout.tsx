@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Loader2,
   Home,
+  Palette,
 } from "lucide-react"
 
 interface NavItem {
@@ -29,6 +30,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Customization", href: "/admin/customization", icon: Palette },
   {
     label: "ShipRocket",
     href: "/admin/shiprocket",

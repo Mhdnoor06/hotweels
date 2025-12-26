@@ -6,7 +6,8 @@
       "Bash(npm run build:*)",
       "WebSearch",
       "Bash(xargs ls:*)",
-      "WebFetch(domain:apidocs.shiprocket.in)"
+      "WebFetch(domain:apidocs.shiprocket.in)",
+      "WebFetch(domain:cloudinary.com)"
     ],
     "deny": [],
     "ask": []

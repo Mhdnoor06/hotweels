@@ -78,3 +78,53 @@ export async function uploadSettingsImage(file: File): Promise<string | null> {
 
   return data.publicUrl
 }
+
+// Custom car transparent image upload
+export async function uploadCustomCarImage(file: File): Promise<string | null> {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `car-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+  const filePath = `custom-cars/${fileName}`
+
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
+
+  if (error) {
+    console.error('Error uploading custom car image:', error)
+    throw error
+  }
+
+  const { data } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(filePath)
+
+  return data.publicUrl
+}
+
+// Custom background image upload
+export async function uploadCustomBackgroundImage(file: File): Promise<string | null> {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `bg-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+  const filePath = `custom-backgrounds/${fileName}`
+
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
+
+  if (error) {
+    console.error('Error uploading background image:', error)
+    throw error
+  }
+
+  const { data } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(filePath)
+
+  return data.publicUrl
+}

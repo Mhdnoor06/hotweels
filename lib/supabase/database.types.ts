@@ -291,6 +291,73 @@ export interface Database {
           updated_at?: string
         }
       }
+      custom_cars: {
+        Row: {
+          id: string
+          name: string
+          series: string | null
+          description: string | null
+          price: number
+          transparent_image: string
+          video_url: string | null
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          series?: string | null
+          description?: string | null
+          price: number
+          transparent_image: string
+          video_url?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          series?: string | null
+          description?: string | null
+          price?: number
+          transparent_image?: string
+          video_url?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      custom_backgrounds: {
+        Row: {
+          id: string
+          name: string
+          image: string
+          car_id: string | null
+          is_common: boolean
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          image: string
+          car_id?: string | null
+          is_common?: boolean
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          image?: string
+          car_id?: string | null
+          is_common?: boolean
+          active?: boolean
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -311,3 +378,5 @@ export type OrderItem = Database['public']['Tables']['order_items']['Row']
 export type WishlistItem = Database['public']['Tables']['wishlist']['Row']
 export type User = Database['public']['Tables']['users']['Row']
 export type StoreSettings = Database['public']['Tables']['store_settings']['Row']
+export type CustomCar = Database['public']['Tables']['custom_cars']['Row']
+export type CustomBackground = Database['public']['Tables']['custom_backgrounds']['Row']
