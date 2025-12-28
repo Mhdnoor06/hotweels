@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
-import { Package, ChevronRight, ShoppingBag, ArrowRight, Loader2, RefreshCw, Truck } from "lucide-react"
+import { Package, ChevronRight, ShoppingBag, ArrowRight, Loader2, RefreshCw, Truck, Star, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ export function OrdersPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
+  const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set())
 
   // Track if we've already fetched orders to prevent refetch on tab/window focus
   const hasFetchedRef = useRef(false)
@@ -63,12 +64,58 @@ export function OrdersPage() {
     }
   }, [user, getAuthHeaders])
 
+  // Fetch user's reviewed products
+  const fetchReviewedProducts = useCallback(async () => {
+    if (!user) return
+
+    try {
+      // Fetch all product IDs from delivered orders, then check which have been reviewed
+      const deliveredOrders = orders.filter(o => o.status === 'delivered')
+      const productIds = new Set<string>()
+
+      deliveredOrders.forEach(order => {
+        order.order_items?.forEach(item => {
+          if (item.product_id) {
+            productIds.add(item.product_id)
+          }
+        })
+      })
+
+      // Check each product for existing review
+      const reviewed = new Set<string>()
+      for (const productId of productIds) {
+        try {
+          const response = await fetch(`/api/products/${productId}/reviews?page=1&limit=1`, {
+            headers: getAuthHeaders(),
+          })
+          const data = await response.json()
+          if (data.existingReviewId) {
+            reviewed.add(productId)
+          }
+        } catch {
+          // Ignore errors for individual products
+        }
+      }
+
+      setReviewedProducts(reviewed)
+    } catch (err) {
+      console.error('Error fetching reviewed products:', err)
+    }
+  }, [user, orders, getAuthHeaders])
+
   // Fetch orders when user is authenticated
   useEffect(() => {
     if (!authLoading) {
       fetchOrders()
     }
   }, [authLoading, fetchOrders])
+
+  // Fetch reviewed products when orders change
+  useEffect(() => {
+    if (orders.length > 0 && user) {
+      fetchReviewedProducts()
+    }
+  }, [orders, user, fetchReviewedProducts])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -254,30 +301,56 @@ export function OrdersPage() {
                         <div className="p-3 sm:p-6 bg-gray-50">
                           <h5 className="font-medium text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Order Items</h5>
                           <div className="space-y-2 sm:space-y-3">
-                            {order.order_items?.map((item) => (
-                              <div key={item.id} className="flex gap-3 sm:gap-4 bg-white p-2.5 sm:p-3 rounded-lg">
-                                <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-md sm:rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                  <Image
-                                    src={item.product?.image || "/placeholder.png"}
-                                    alt={item.product?.name || 'Product'}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-gray-900 truncate text-sm sm:text-base">
-                                    {item.product?.name || 'Product'}
-                                  </p>
-                                  <p className="text-xs sm:text-sm text-gray-500">
-                                    {item.product?.series}
-                                  </p>
-                                  <div className="flex items-center justify-between mt-1">
-                                    <span className="text-xs sm:text-sm text-gray-500">Qty: {item.quantity}</span>
-                                    <span className="font-medium text-sm sm:text-base">₹{(item.price * item.quantity).toFixed(2)}</span>
+                            {order.order_items?.map((item) => {
+                              const hasReviewed = reviewedProducts.has(item.product_id)
+                              const isDelivered = order.status === 'delivered'
+
+                              return (
+                                <div key={item.id} className="flex gap-3 sm:gap-4 bg-white p-2.5 sm:p-3 rounded-lg">
+                                  <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-md sm:rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                    <Image
+                                      src={item.product?.image || "/placeholder.png"}
+                                      alt={item.product?.name || 'Product'}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-gray-900 truncate text-sm sm:text-base">
+                                      {item.product?.name || 'Product'}
+                                    </p>
+                                    <p className="text-xs sm:text-sm text-gray-500">
+                                      {item.product?.series}
+                                    </p>
+                                    <div className="flex items-center justify-between mt-1">
+                                      <span className="text-xs sm:text-sm text-gray-500">Qty: {item.quantity}</span>
+                                      <span className="font-medium text-sm sm:text-base">₹{(item.price * item.quantity).toFixed(2)}</span>
+                                    </div>
+
+                                    {/* Write Review Button - Only for delivered orders */}
+                                    {isDelivered && (
+                                      <div className="mt-2">
+                                        {hasReviewed ? (
+                                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                                            <CheckCircle className="w-3 h-3" />
+                                            Reviewed
+                                          </span>
+                                        ) : (
+                                          <Link
+                                            href={`/product/${item.product_id}#reviews`}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-full transition-colors"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Star className="w-3 h-3" />
+                                            Write Review
+                                          </Link>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
 
                           {/* Shipping Address */}

@@ -160,13 +160,13 @@ export function NotificationBell({ isScrolled = true }: NotificationBellProps) {
               onClick={() => setIsOpen(false)}
             />
 
-            {/* Dropdown */}
+            {/* Dropdown - Fixed position on mobile, absolute on desktop */}
             <motion.div
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden"
+              className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-14 sm:top-full sm:mt-2 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
@@ -242,11 +242,11 @@ export function NotificationBell({ isScrolled = true }: NotificationBellProps) {
 
               {/* Footer */}
               {notifications.length > 0 && (
-                <div className="px-4 py-2 border-t border-gray-100 bg-gray-50">
+                <div className="border-t border-gray-100 bg-gray-50">
                   <Link
                     href="/orders"
                     onClick={() => setIsOpen(false)}
-                    className="text-xs text-red-600 hover:text-red-700 font-medium"
+                    className="block w-full px-4 py-3 text-sm text-center text-red-600 hover:text-red-700 hover:bg-gray-100 font-medium transition-colors"
                   >
                     View all orders
                   </Link>

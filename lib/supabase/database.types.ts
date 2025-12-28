@@ -329,6 +329,82 @@ export interface Database {
           expires_at?: string
         }
       }
+      reviews: {
+        Row: {
+          id: string
+          user_id: string
+          product_id: string
+          order_item_id: string
+          rating: number
+          title: string | null
+          comment: string | null
+          images: string[]
+          status: 'pending' | 'approved' | 'rejected'
+          helpful_count: number
+          unhelpful_count: number
+          admin_note: string | null
+          reviewer_name: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          product_id: string
+          order_item_id: string
+          rating: number
+          title?: string | null
+          comment?: string | null
+          images?: string[]
+          status?: 'pending' | 'approved' | 'rejected'
+          helpful_count?: number
+          unhelpful_count?: number
+          admin_note?: string | null
+          reviewer_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          product_id?: string
+          order_item_id?: string
+          rating?: number
+          title?: string | null
+          comment?: string | null
+          images?: string[]
+          status?: 'pending' | 'approved' | 'rejected'
+          helpful_count?: number
+          unhelpful_count?: number
+          admin_note?: string | null
+          reviewer_name?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      review_votes: {
+        Row: {
+          id: string
+          review_id: string
+          user_id: string
+          vote_type: 'helpful' | 'unhelpful'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          review_id: string
+          user_id: string
+          vote_type: 'helpful' | 'unhelpful'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          review_id?: string
+          user_id?: string
+          vote_type?: 'helpful' | 'unhelpful'
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -351,3 +427,23 @@ export type User = Database['public']['Tables']['users']['Row']
 export type StoreSettings = Database['public']['Tables']['store_settings']['Row']
 export type Notification = Database['public']['Tables']['notifications']['Row']
 export type NotificationType = 'order_status' | 'payment' | 'shipping' | 'promo' | 'system'
+export type Review = Database['public']['Tables']['reviews']['Row']
+export type ReviewInsert = Database['public']['Tables']['reviews']['Insert']
+export type ReviewUpdate = Database['public']['Tables']['reviews']['Update']
+export type ReviewVote = Database['public']['Tables']['review_votes']['Row']
+export type ReviewStatus = 'pending' | 'approved' | 'rejected'
+export type VoteType = 'helpful' | 'unhelpful'
+
+// Extended review type with user info for display
+export interface ReviewWithUser extends Review {
+  user?: {
+    id: string
+    name: string | null
+    avatar_url: string | null
+  }
+  product?: {
+    id: string
+    name: string
+    image: string
+  }
+}

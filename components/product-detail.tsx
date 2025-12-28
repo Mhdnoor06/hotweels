@@ -26,6 +26,7 @@ import type { Product } from "@/lib/supabase/database.types"
 import { Navbar } from "@/components/navbar"
 import { useCart } from "@/context/cart-context"
 import { useWishlist } from "@/context/wishlist-context"
+import { ProductReviewsSection } from "@/components/reviews/product-reviews-section"
 
 export function ProductDetail({ productId }: { productId: string }) {
   const router = useRouter()
@@ -413,6 +414,11 @@ export function ProductDetail({ productId }: { productId: string }) {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-8 border-t border-gray-200 pt-4">
+          <ProductReviewsSection productId={productId} />
         </div>
       </main>
     </div>

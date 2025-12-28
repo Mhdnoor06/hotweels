@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Loader2,
   Home,
+  MessageSquare,
 } from "lucide-react"
 
 interface NavItem {
@@ -29,6 +30,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Reviews", href: "/admin/reviews", icon: MessageSquare },
   {
     label: "ShipRocket",
     href: "/admin/shiprocket",

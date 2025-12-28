@@ -24,14 +24,9 @@ import { useAdminAuth } from "@/context/admin-auth-context"
 import { AdminPageHeader } from "./admin-page-header"
 
 const seriesOptions = [
-  "HW Dream Garage",
-  "HW Legends",
-  "HW Originals",
-  "HW Muscle Mania",
-  "HW Classics",
-  "HW Exotics",
-  "HW Green Speed",
-  "HW J-Imports",
+  "CCA",
+  "Die Cast",
+  "Hot Wheels",
 ]
 const colorOptions = ["Red", "Blue", "Black", "White", "Yellow", "Green", "Orange", "Silver", "Gold"]
 
