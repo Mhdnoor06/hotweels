@@ -16,21 +16,6 @@ export function WishlistPage() {
   const { items: wishlistItems, removeItem } = useWishlist()
   const { addItem: addToCart, isInCart } = useCart()
 
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case "Common":
-        return "bg-zinc-500/80"
-      case "Uncommon":
-        return "bg-emerald-500/80"
-      case "Rare":
-        return "bg-blue-500/80"
-      case "Super Rare":
-        return "bg-amber-500/80"
-      default:
-        return "bg-zinc-500/80"
-    }
-  }
-
   const handleAddToCart = (item: typeof wishlistItems[0]) => {
     const product: Product = {
       id: item.id,
@@ -40,7 +25,6 @@ export function WishlistPage() {
       image: item.image,
       images: item.image ? [item.image] : null,
       color: item.color,
-      rarity: item.rarity as Product['rarity'],
       year: item.year,
       rating: item.rating,
       stock: item.stock,
@@ -108,10 +92,11 @@ export function WishlistPage() {
                       />
 
                       {/* Badges */}
-                      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1 sm:gap-2">
-                        <Badge className={`${getRarityColor(item.rarity)} text-white text-[10px] sm:text-xs`}>{item.rarity}</Badge>
-                        {item.stock === 0 && <Badge className="bg-red-500 text-white text-[10px] sm:text-xs">Out of Stock</Badge>}
-                      </div>
+                      {item.stock === 0 && (
+                        <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+                          <Badge className="bg-red-500 text-white text-[10px] sm:text-xs">Out of Stock</Badge>
+                        </div>
+                      )}
 
                       {/* Remove button */}
                       <motion.button

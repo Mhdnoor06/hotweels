@@ -102,7 +102,6 @@ export default function CartPage() {
                             <p className="text-xs sm:text-sm text-gray-500 truncate">{item.series}</p>
                             <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
                               <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-100 rounded-full whitespace-nowrap">{item.color}</span>
-                              <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-100 rounded-full whitespace-nowrap">{item.rarity}</span>
                             </div>
                           </div>
                           <button

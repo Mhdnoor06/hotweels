@@ -51,9 +51,6 @@ export async function getStoreSettings(): Promise<StoreSettings | null> {
     settingsData.shipping_charges_collection_enabled = false
   }
 
-  // Log the actual value from database (before any defaults)
-  console.log('Raw database value - shipping_charges_amount:', (data as any)?.shipping_charges_amount)
-  console.log('Final settings - shipping_charges_amount:', settingsData.shipping_charges_amount)
   return settingsData as StoreSettings
 }
 

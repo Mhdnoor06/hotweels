@@ -29,14 +29,12 @@ const seriesOptions = [
   "HW Green Speed",
   "HW J-Imports",
 ]
-const rarityOptions = ["All Rarities", "Common", "Uncommon", "Rare", "Super Rare"]
 
 export function AdminProducts() {
   const router = useRouter()
   const { isAuthenticated, isLoading: authLoading } = useAdminAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [seriesFilter, setSeriesFilter] = useState("All Series")
-  const [rarityFilter, setRarityFilter] = useState("All Rarities")
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteModal, setDeleteModal] = useState<string | null>(null)
@@ -73,8 +71,7 @@ export function AdminProducts() {
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.series.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesSeries = seriesFilter === "All Series" || product.series === seriesFilter
-    const matchesRarity = rarityFilter === "All Rarities" || product.rarity === rarityFilter
-    return matchesSearch && matchesSeries && matchesRarity
+    return matchesSearch && matchesSeries
   })
 
   const handleDelete = async (id: string) => {
@@ -92,19 +89,6 @@ export function AdminProducts() {
       console.error('Error deleting product:', err)
     } finally {
       setDeleting(false)
-    }
-  }
-
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case "Super Rare":
-        return "text-amber-600"
-      case "Rare":
-        return "text-red-600"
-      case "Uncommon":
-        return "text-blue-600"
-      default:
-        return "text-gray-500"
     }
   }
 
@@ -151,20 +135,6 @@ export function AdminProducts() {
                   {seriesOptions.map((s) => (
                     <option key={s} value={s}>
                       {s}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400 pointer-events-none" />
-              </div>
-              <div className="relative flex-1">
-                <select
-                  value={rarityFilter}
-                  onChange={(e) => setRarityFilter(e.target.value)}
-                  className="appearance-none w-full bg-white border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 pr-8 sm:pr-10 text-gray-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
-                >
-                  {rarityOptions.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
                     </option>
                   ))}
                 </select>
@@ -218,13 +188,12 @@ export function AdminProducts() {
                   {/* Info */}
                   <div className="p-3 sm:p-4 border-t border-gray-100">
                     <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs font-medium ${getRarityColor(product.rarity)}`}>{product.rarity}</span>
+                      <span className="text-xs text-gray-500">{product.series}</span>
                       <span className={`text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${stockStatus.color}`}>
                         {product.stock} units
                       </span>
                     </div>
                     <h3 className="text-sm sm:text-base font-semibold text-gray-900 truncate">{product.name}</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 truncate">{product.series}</p>
                     <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100">
                       <span className="text-base sm:text-lg font-bold text-gray-900">₹{product.price.toFixed(2)}</span>
                       <span className="text-xs text-gray-400">{product.year}</span>

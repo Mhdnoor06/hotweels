@@ -152,8 +152,6 @@ export function AdminSettings() {
         shipping_charges_amount: typeof settingsToSave.shipping_charges_amount === 'number' ? Math.round(settingsToSave.shipping_charges_amount * 100) / 100 : 0,
       }
 
-      console.log('Saving settings with payload:', payload)
-      
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { 
@@ -166,11 +164,9 @@ export function AdminSettings() {
       })
 
       const responseData = await res.json()
-      console.log('API response status:', res.status, 'data:', responseData)
 
       if (res.ok) {
         const savedData = responseData
-        console.log('Settings saved successfully:', savedData)
         
         // Ensure all boolean values are properly set
         const settingsData = {
@@ -192,7 +188,6 @@ export function AdminSettings() {
           shipping_charges_amount: savedData.shipping_charges_amount || 0,
         }
         
-        console.log('Setting state with:', settingsData)
         setSettings(settingsData)
         setOriginalSettings(settingsData)
         setValidationError(null)

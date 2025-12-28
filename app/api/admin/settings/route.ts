@@ -118,8 +118,6 @@ export async function PUT(request: NextRequest) {
         : Math.round(parseFloat(String(updateData.shipping_charges_amount || 0)) * 100) / 100,
     }
     
-    console.log('Cleaned update data:', cleanUpdateData)
-
     // Check if settings exist
     const { data: existing } = await supabaseAdmin
       .from('store_settings')
@@ -132,7 +130,6 @@ export async function PUT(request: NextRequest) {
 
     if (!existingSettings) {
       // Create new settings record if it doesn't exist
-      console.log('Creating new settings with data:', cleanUpdateData)
       const { data, error } = await supabaseAdmin
         .from('store_settings')
         .insert(cleanUpdateData as never)
@@ -147,11 +144,9 @@ export async function PUT(request: NextRequest) {
         )
       }
 
-      console.log('Settings created successfully:', data)
       result = data
     } else {
       // Update existing settings
-      console.log('Updating existing settings with data:', cleanUpdateData)
       const { data, error } = await supabaseAdmin
         .from('store_settings')
         .update(cleanUpdateData as never)
@@ -161,14 +156,12 @@ export async function PUT(request: NextRequest) {
 
       if (error) {
         console.error('Error updating settings:', error)
-        console.error('Update data:', cleanUpdateData)
         return NextResponse.json(
           { error: error.message, details: error.details, hint: error.hint },
           { status: 500 }
         )
       }
 
-      console.log('Settings updated successfully:', data)
       result = data
     }
 

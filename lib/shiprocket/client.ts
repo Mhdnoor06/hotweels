@@ -279,7 +279,7 @@ export class ShipRocketClient {
   }
 
   /**
-   * Cancel order
+   * Cancel order (cancels entire order including shipment)
    */
   async cancelOrder(orderIds: number[]): Promise<{ status: number; message: string }> {
     return this.request('/orders/cancel', {
@@ -288,12 +288,81 @@ export class ShipRocketClient {
     })
   }
 
+  /**
+   * Cancel shipment only (keeps order active, allows re-assigning courier)
+   * Use this when you want to cancel the AWB/shipment but keep the order
+   */
+  async cancelShipment(awbCodes: string[]): Promise<{ status: number; message: string }> {
+    return this.request('/orders/cancel/shipment/awbs', {
+      method: 'POST',
+      body: JSON.stringify({ awbs: awbCodes }),
+    })
+  }
+
   // ============================================
   // AWB & SHIPPING
   // ============================================
 
   /**
+   * Get the cheapest available courier for a shipment
+   * @param pickupPincode - Pickup location pincode
+   * @param deliveryPincode - Delivery location pincode
+   * @param weight - Package weight in kg
+   * @param isCOD - Whether it's a COD order
+   * @param declaredValue - Declared value of the shipment
+   * @returns The cheapest courier or null if none available
+   */
+  async getCheapestCourier(
+    pickupPincode: string,
+    deliveryPincode: string,
+    weight: number,
+    isCOD: boolean = false,
+    declaredValue?: number
+  ): Promise<{
+    courier_company_id: number
+    courier_name: string
+    freight_charge: number
+    cod_charges: number
+    total_charge: number
+    estimated_delivery_days: string
+  } | null> {
+    const result = await this.checkServiceability(
+      pickupPincode,
+      deliveryPincode,
+      weight,
+      isCOD,
+      declaredValue
+    )
+
+    if (!result.available || result.couriers.length === 0) {
+      return null
+    }
+
+    // Sort by total charge (freight + COD charges if applicable)
+    const sortedCouriers = [...result.couriers].sort((a, b) => {
+      const totalA = a.freight_charge + (isCOD ? a.cod_charges : 0)
+      const totalB = b.freight_charge + (isCOD ? b.cod_charges : 0)
+      return totalA - totalB
+    })
+
+    const cheapest = sortedCouriers[0]
+
+    console.log(`Found ${result.couriers.length} couriers. Cheapest: ${cheapest.courier_name} @ ₹${cheapest.freight_charge + (isCOD ? cheapest.cod_charges : 0)}`)
+
+    return {
+      courier_company_id: cheapest.courier_company_id,
+      courier_name: cheapest.courier_name,
+      freight_charge: cheapest.freight_charge,
+      cod_charges: cheapest.cod_charges,
+      total_charge: cheapest.freight_charge + (isCOD ? cheapest.cod_charges : 0),
+      estimated_delivery_days: cheapest.estimated_delivery_days,
+    }
+  }
+
+  /**
    * Generate AWB and assign courier
+   * If no courierId provided, will use Shiprocket's default selection (NOT cheapest)
+   * Use getCheapestCourier() first to get the cheapest option
    */
   async generateAWB(
     shipmentId: number,
@@ -310,6 +379,9 @@ export class ShipRocketClient {
 
     if (courierId) {
       body.courier_id = courierId
+      console.log(`Generating AWB with specific courier ID: ${courierId}`)
+    } else {
+      console.log('Generating AWB without courier ID - Shiprocket will auto-select (may not be cheapest)')
     }
 
     const response = await this.request<AWBAssignResponse>('/courier/assign/awb', {
@@ -317,17 +389,32 @@ export class ShipRocketClient {
       body: JSON.stringify(body),
     })
 
-    // Log the response for debugging
-    console.log('AWB assign response:', JSON.stringify(response, null, 2))
+    // Log the full response for debugging
+    console.log('AWB assign FULL response:', JSON.stringify(response, null, 2))
+
+    // Check for error responses first
+    if ((response as any).status_code === 0 || (response as any).awb_assign_status === 0) {
+      const errorMsg = (response as any).message || (response as any).error || 'AWB assignment failed'
+      console.error('AWB assignment failed:', errorMsg)
+      throw new Error(errorMsg)
+    }
 
     // Handle different response structures from ShipRocket
+    // Structure 1: { response: { data: { awb_code, ... } } }
+    // Structure 2: { data: { awb_code, ... } }
+    // Structure 3: { awb_code, ... } (flat)
     const data = response.response?.data || (response as any).data || response
+
+    console.log('Extracted AWB data:', JSON.stringify(data, null, 2))
 
     if (!data || !data.awb_code) {
       // Check for error message in response
       const errorMsg = (response as any).message || (response as any).error || 'AWB generation failed - no AWB code in response'
+      console.error('No AWB code in response:', errorMsg)
       throw new Error(errorMsg)
     }
+
+    console.log('AWB code extracted:', data.awb_code)
 
     // Handle assigned_date_time which can be a string or an object with a date property
     let assignedDateTime: string = new Date().toISOString()

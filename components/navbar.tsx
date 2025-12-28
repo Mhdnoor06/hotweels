@@ -9,6 +9,7 @@ import { useCart } from "@/context/cart-context"
 import { useWishlist } from "@/context/wishlist-context"
 import { useAuth } from "@/context/auth-context"
 import { motion, AnimatePresence } from "framer-motion"
+import { NotificationBell } from "@/components/notification-bell"
 
 interface NavbarProps {
   variant?: "default" | "minimal"
@@ -198,6 +199,9 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
           >
             <Package className={`h-5 w-5 ${isActive("/orders") ? "text-gray-900" : ""}`} />
           </Link>
+
+          {/* Notifications */}
+          <NotificationBell isScrolled={isScrolled} />
 
           {/* Cart */}
           <Link

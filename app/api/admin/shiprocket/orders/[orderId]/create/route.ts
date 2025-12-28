@@ -37,6 +37,7 @@ interface Order {
   payment_method: string
   total: number
   discount_amount: number
+  shipping_charges: number | null
   shipping_address: ShippingAddress
   shiprocket_order_id: string | null
   created_at: string
@@ -178,6 +179,14 @@ export async function POST(
       hsn: 9503, // HSN code for toys
     }))
 
+    // Calculate the correct subtotal for Shiprocket (product value only, excluding shipping)
+    // This is important for COD orders - we only collect the product amount, not shipping
+    // because shipping is already paid by the customer during checkout
+    const shippingCharges = typedOrder.shipping_charges || 0
+    const productSubtotal = typedOrder.total - shippingCharges
+
+    console.log(`Order total: ₹${typedOrder.total}, Shipping charges: ₹${shippingCharges}, Product subtotal: ₹${productSubtotal}`)
+
     // Create ShipRocket order payload
     const payload: CreateOrderRequest = {
       order_id: typedOrder.id.slice(0, 20), // Use shortened order ID
@@ -195,7 +204,8 @@ export async function POST(
       shipping_is_billing: true,
       order_items: orderItems,
       payment_method: typedOrder.payment_method === 'cod' ? 'COD' : 'Prepaid',
-      sub_total: typedOrder.total,
+      sub_total: productSubtotal, // Only the product value, not including shipping
+      shipping_charges: 0, // Shipping already paid by customer, don't add to COD collection
       total_discount: typedOrder.discount_amount || 0,
       length: typedSettings.default_length,
       breadth: typedSettings.default_breadth,
@@ -311,17 +321,40 @@ export async function POST(
     if (typedSettings.auto_assign_courier && canGenerateAwb) {
       console.log('Auto-generating AWB for shipment:', srShipmentId)
       try {
-        const awbResponse = await client.generateAWB(Number(srShipmentId))
+        // Find the cheapest courier first
+        const deliveryPincode = shippingAddress.pincode
+        const isCOD = typedOrder.payment_method === 'cod'
+        let cheapestCourierId: number | undefined
+
+        if (deliveryPincode && typedSettings.pickup_pincode) {
+          console.log(`Finding cheapest courier: ${typedSettings.pickup_pincode} → ${deliveryPincode}, COD: ${isCOD}`)
+
+          const cheapestCourier = await client.getCheapestCourier(
+            typedSettings.pickup_pincode,
+            deliveryPincode,
+            totalWeight,
+            isCOD,
+            typedOrder.total
+          )
+
+          if (cheapestCourier) {
+            cheapestCourierId = cheapestCourier.courier_company_id
+            console.log(`Selected cheapest courier: ${cheapestCourier.courier_name} (ID: ${cheapestCourierId}) @ ₹${cheapestCourier.total_charge}`)
+          }
+        }
+
+        // Generate AWB with cheapest courier (or let Shiprocket decide if not found)
+        const awbResponse = await client.generateAWB(Number(srShipmentId), cheapestCourierId)
         console.log('Auto AWB response:', JSON.stringify(awbResponse, null, 2))
 
-        // Update order with AWB details and set status to processing
+        // Update order with AWB details only (don't change order status - let admin do that)
         const { error: awbUpdateError } = await supabaseAdmin
           .from('orders')
           .update({
             shiprocket_awb_code: awbResponse.awb_code,
             shiprocket_courier_name: awbResponse.courier_name,
+            shiprocket_courier_id: awbResponse.courier_company_id,
             shiprocket_status: 'AWB_ASSIGNED',
-            status: 'processing', // Auto-update status when AWB is generated
           } as never)
           .eq('id', orderId)
 

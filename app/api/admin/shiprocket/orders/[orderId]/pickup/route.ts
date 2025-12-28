@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { verifyAdminAuthFromRequest } from '@/lib/admin-auth'
 import { getShipRocketClient } from '@/lib/shiprocket/client'
+import { notifyOrderStatusChange } from '@/lib/notifications'
 
 export const dynamic = 'force-dynamic'
 
 interface Order {
   id: string
+  user_id: string | null
   status: string
   shiprocket_shipment_id: string | null
   shiprocket_awb_code: string | null
+  shiprocket_courier_name: string | null
   shiprocket_status: string | null
   pickup_scheduled_date: string | null
   pickup_token: string | null
@@ -38,7 +41,7 @@ export async function POST(
     // Fetch the order
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, status, shiprocket_shipment_id, shiprocket_awb_code, shiprocket_status, pickup_scheduled_date, pickup_token')
+      .select('id, user_id, status, shiprocket_shipment_id, shiprocket_awb_code, shiprocket_courier_name, shiprocket_status, pickup_scheduled_date, pickup_token')
       .eq('id', orderId)
       .single()
 
@@ -117,6 +120,19 @@ export async function POST(
 
     if (updateError) {
       console.error('Failed to update order with pickup details:', updateError)
+    }
+
+    // Send notification to user about order being shipped
+    if (typedOrder.user_id) {
+      await notifyOrderStatusChange(
+        typedOrder.user_id,
+        orderId,
+        'shipped',
+        {
+          courier: typedOrder.shiprocket_courier_name,
+          pickupDate: result.pickup_scheduled_date,
+        }
+      )
     }
 
     return NextResponse.json({

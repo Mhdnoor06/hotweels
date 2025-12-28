@@ -17,7 +17,9 @@ import {
   ArrowRight,
   Loader2,
   Check,
+  Zap,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { getProducts, type ProductFilters } from "@/lib/supabase/products"
 import type { Product } from "@/lib/supabase/database.types"
 import { Navbar } from "@/components/navbar"
@@ -36,7 +38,6 @@ const series = [
   "HW Green Speed",
   "HW J-Imports",
 ]
-const rarities = ["All Rarities", "Common", "Uncommon", "Rare", "Super Rare"]
 const sortOptions = ["Featured", "Price: Low to High", "Price: High to Low", "Newest", "Name: A-Z"]
 
 // Map UI sort options to API sort options
@@ -51,7 +52,6 @@ const sortMap: Record<string, ProductFilters['sortBy']> = {
 export default function CollectionPage() {
   const [filters, setFilters] = useState({
     series: "All Series",
-    rarity: "All Rarities",
   })
   const [sortBy, setSortBy] = useState("Featured")
   const [viewMode, setViewMode] = useState<"grid" | "compact">("grid")
@@ -61,8 +61,16 @@ export default function CollectionPage() {
   const [error, setError] = useState<string | null>(null)
   const productsPerPage = 8
 
-  const { toggleItem: toggleCart, isInCart } = useCart()
+  const router = useRouter()
+  const { addItem, toggleItem: toggleCart, isInCart } = useCart()
   const { toggleItem: toggleWishlist, isInWishlist } = useWishlist()
+
+  const handleBuyNow = (product: Product) => {
+    if (!isInCart(product.id)) {
+      addItem(product)
+    }
+    router.push('/checkout')
+  }
 
   // Fetch products from Supabase
   useEffect(() => {
@@ -72,11 +80,9 @@ export default function CollectionPage() {
       try {
         const data = await getProducts({
           series: filters.series,
-          rarity: filters.rarity,
           sortBy: sortMap[sortBy],
         })
 
-        console.log(data)
         setProducts(data)
       } catch (err) {
         setError("Failed to load products. Please try again.")
@@ -94,19 +100,6 @@ export default function CollectionPage() {
 
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage)
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage)
-
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case "Super Rare":
-        return "text-amber-600"
-      case "Rare":
-        return "text-red-600"
-      case "Uncommon":
-        return "text-blue-600"
-      default:
-        return "text-neutral-500"
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -144,28 +137,6 @@ export default function CollectionPage() {
                 {series.map((s) => (
                   <option key={s} value={s}>
                     {s}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={14}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-              />
-            </div>
-
-            {/* Rarity Filter */}
-            <div className="relative">
-              <select
-                value={filters.rarity}
-                onChange={(e) => {
-                  setFilters((f) => ({ ...f, rarity: e.target.value }))
-                  setCurrentPage(1)
-                }}
-                className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
-              >
-                {rarities.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
                   </option>
                 ))}
               </select>
@@ -236,7 +207,7 @@ export default function CollectionPage() {
             <p className="text-gray-500">No cars found</p>
             <button
               onClick={() => {
-                setFilters({ series: "All Series", rarity: "All Rarities" })
+                setFilters({ series: "All Series" })
                 setCurrentPage(1)
               }}
               className="mt-3 text-sm text-red-600 hover:text-red-700"
@@ -281,15 +252,10 @@ export default function CollectionPage() {
                       <Link href={`/product/${product.id}`}>
                         <div className="cursor-pointer">
                           <div className="flex items-center justify-between gap-1 sm:gap-2 mb-1">
-                            <span
-                              className={`text-[9px] sm:text-[10px] font-medium uppercase tracking-wide ${getRarityColor(product.rarity)}`}
-                            >
-                              {product.rarity}
-                            </span>
+                            <span className="text-[9px] sm:text-[10px] text-gray-500 truncate">{product.series}</span>
                             <span className="text-[9px] sm:text-[10px] text-gray-400">{product.year}</span>
                           </div>
                           <h3 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{product.name}</h3>
-                          <p className="text-[10px] sm:text-[11px] text-gray-500 truncate">{product.series}</p>
                         </div>
                       </Link>
 
@@ -298,13 +264,25 @@ export default function CollectionPage() {
 
                         {/* Action Buttons */}
                         <div className="flex gap-1.5 sm:gap-2">
+                          {/* Buy Now - Desktop only */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleBuyNow(product)
+                            }}
+                            className="hidden sm:flex flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors items-center justify-center gap-1.5 bg-orange-500 text-white hover:bg-orange-600"
+                          >
+                            <Zap size={14} />
+                            <span>Buy Now</span>
+                          </button>
                           <button
                             onClick={(e) => {
                               e.preventDefault()
                               e.stopPropagation()
                               toggleCart(product)
                             }}
-                            className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium transition-colors flex items-center justify-center gap-1 sm:gap-1.5 ${
+                            className={`flex-1 sm:flex-none px-2 sm:px-3 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium transition-colors flex items-center justify-center gap-1 sm:gap-1.5 ${
                               isInCart(product.id)
                                 ? "bg-green-500 text-white hover:bg-green-600"
                                 : "bg-red-500 text-white hover:bg-red-600"
@@ -313,12 +291,12 @@ export default function CollectionPage() {
                             {isInCart(product.id) ? (
                               <>
                                 <Check size={12} className="sm:w-3.5 sm:h-3.5" />
-                                <span className="hidden xs:inline">Added</span>
+                                <span className="hidden xs:inline sm:hidden">Added</span>
                               </>
                             ) : (
                               <>
                                 <ShoppingCart size={12} className="sm:w-3.5 sm:h-3.5" />
-                                <span className="hidden xs:inline">Add</span>
+                                <span className="hidden xs:inline sm:hidden">Add</span>
                               </>
                             )}
                           </button>

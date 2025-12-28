@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createOrder, getUserOrders, type CreateOrderInput } from '@/lib/supabase/orders'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { createNotification } from '@/lib/notifications'
 
 // Helper to get user from Authorization header
 async function getUserFromRequest(request: Request) {
@@ -111,6 +112,20 @@ export async function POST(request: Request) {
         { status: 500 }
       )
     }
+
+    // Send notification about order placement
+    const shortOrderId = order.id.slice(0, 8).toUpperCase()
+    await createNotification({
+      userId: user.id,
+      title: 'Order Placed Successfully',
+      message: `Your order #${shortOrderId} has been placed and is pending confirmation. We'll notify you once it's confirmed.`,
+      type: 'order_status',
+      orderId: order.id,
+      metadata: {
+        status: 'pending',
+        total: order.total,
+      },
+    })
 
     return NextResponse.json({
       success: true,

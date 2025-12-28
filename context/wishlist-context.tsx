@@ -10,7 +10,6 @@ export interface WishlistItem {
   price: number
   image: string
   color: string
-  rarity: string
   year: number
   rating: number
   stock: number
@@ -67,7 +66,6 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         price: product.price,
         image: product.image,
         color: product.color,
-        rarity: product.rarity,
         year: product.year,
         rating: product.rating,
         stock: product.stock,

@@ -105,8 +105,6 @@ export function ShipRocketSettingsPanel() {
 
       if (res.ok) {
         const data: ShipRocketSettingsResponse = await res.json()
-        console.log('Frontend received settings:', JSON.stringify(data, null, 2))
-        console.log('Phone from API:', data.pickupLocation?.phone)
         setServerSettings(data)
 
         // Populate form with existing data

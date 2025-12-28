@@ -11,7 +11,6 @@ export interface CartItem {
   image: string
   quantity: number
   color: string
-  rarity: string
   year: number
 }
 
@@ -75,7 +74,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         image: product.image,
         quantity,
         color: product.color,
-        rarity: product.rarity,
         year: product.year,
       }]
     })

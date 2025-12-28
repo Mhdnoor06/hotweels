@@ -33,7 +33,6 @@ const seriesOptions = [
   "HW Green Speed",
   "HW J-Imports",
 ]
-const rarityOptions = ["Common", "Uncommon", "Rare", "Super Rare", "Treasure Hunt"]
 const colorOptions = ["Red", "Blue", "Black", "White", "Yellow", "Green", "Orange", "Silver", "Gold"]
 
 interface ProductFormProps {
@@ -64,7 +63,6 @@ export function ProductForm({ productId }: ProductFormProps) {
     series: "",
     price: "",
     year: new Date().getFullYear().toString(),
-    rarity: "" as string,
     color: "",
     stock: "",
     description: "",
@@ -96,7 +94,6 @@ export function ProductForm({ productId }: ProductFormProps) {
               series: product.series,
               price: product.price.toString(),
               year: product.year.toString(),
-              rarity: product.rarity,
               color: product.color,
               stock: product.stock.toString(),
               description: product.description || "",
@@ -152,7 +149,6 @@ export function ProductForm({ productId }: ProductFormProps) {
         series: formData.series,
         price: parseFloat(formData.price),
         year: parseInt(formData.year),
-        rarity: formData.rarity as Product['rarity'],
         color: formData.color,
         stock: parseInt(formData.stock),
         description: formData.description || null,
@@ -657,8 +653,8 @@ export function ProductForm({ productId }: ProductFormProps) {
                         />
                       </div>
 
-                      {/* Series & Rarity & Color */}
-                      <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
+                      {/* Series & Color */}
+                      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
                           <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                             <label className="block text-xs sm:text-sm font-medium text-gray-700">Series *</label>
@@ -701,23 +697,6 @@ export function ProductForm({ productId }: ProductFormProps) {
                               ))}
                             </select>
                           )}
-                        </div>
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Rarity *</label>
-                          <select
-                            name="rarity"
-                            value={formData.rarity}
-                            onChange={handleChange}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer"
-                            required
-                          >
-                            <option value="">Select rarity</option>
-                            {rarityOptions.map((r) => (
-                              <option key={r} value={r}>
-                                {r}
-                              </option>
-                            ))}
-                          </select>
                         </div>
                         <div>
                           <div className="flex items-center justify-between mb-1.5 sm:mb-2">

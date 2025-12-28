@@ -3,7 +3,6 @@ import type { Product } from './database.types'
 
 export type ProductFilters = {
   series?: string
-  rarity?: string
   sortBy?: 'featured' | 'price_asc' | 'price_desc' | 'newest' | 'name'
 }
 
@@ -15,10 +14,6 @@ export async function getProducts(filters?: ProductFilters): Promise<Product[]> 
   // Apply filters
   if (filters?.series && filters.series !== 'All Series') {
     query = query.eq('series', filters.series)
-  }
-
-  if (filters?.rarity && filters.rarity !== 'All Rarities') {
-    query = query.eq('rarity', filters.rarity)
   }
 
   // Apply sorting

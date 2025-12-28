@@ -1,6 +1,7 @@
 "use client"
 
 import { ReactNode } from 'react'
+import { Toaster } from 'sonner'
 import { AuthProvider } from './auth-context'
 import { AdminAuthProvider } from './admin-auth-context'
 import { CartProvider } from './cart-context'
@@ -13,6 +14,12 @@ export function Providers({ children }: { children: ReactNode }) {
         <CartProvider>
           <WishlistProvider>
             {children}
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              duration={4000}
+            />
           </WishlistProvider>
         </CartProvider>
       </AdminAuthProvider>

@@ -142,7 +142,6 @@ export default function FeaturedCollection() {
                       series={product.series}
                       year={product.year}
                       color={product.color}
-                      rarity={product.rarity}
                       productId={product.id}
                       stock={product.stock}
                       isFavorite={isInWishlist(product.id)}
@@ -196,7 +195,6 @@ export default function FeaturedCollection() {
                     series={product.series}
                     year={product.year}
                     color={product.color}
-                    rarity={product.rarity}
                     productId={product.id}
                     stock={product.stock}
                     isFavorite={isInWishlist(product.id)}

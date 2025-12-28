@@ -77,7 +77,6 @@ async function fetchSettingsWithRetry(maxRetries = 3, delayMs = 100): Promise<{ 
 
     // If we got the same data twice, it's likely consistent
     if (attempt > 0 && lastData && data.updated_at === lastData.updated_at) {
-      console.log(`GET - Data consistent after ${attempt + 1} attempts`)
       break
     }
 
@@ -96,25 +95,8 @@ export async function GET(request: NextRequest) {
   if (authError) return authError
 
   try {
-    const supabase = getSupabaseAdmin(`count-${Date.now()}`)
-
-    // First check how many rows exist (for debugging)
-    const { count } = await supabase
-      .from('shiprocket_settings' as never)
-      .select('*', { count: 'exact', head: true })
-
-    console.log('GET - Total rows in shiprocket_settings:', count)
-
     // Fetch with retry to handle read replica lag
     const { data, error } = await fetchSettingsWithRetry()
-
-    console.log('GET raw data from DB:', JSON.stringify(data, null, 2))
-
-    if (data) {
-      console.log('GET data:', { pickup_phone: data.pickup_phone, pickup_address: data.pickup_address, enabled: data.enabled, updated_at: data.updated_at })
-    } else {
-      console.log('GET data: null')
-    }
 
     if (error) {
       console.error('Error fetching ShipRocket settings:', error)
@@ -123,7 +105,6 @@ export async function GET(request: NextRequest) {
 
     // If no settings exist, return default response
     if (!data) {
-      console.log('No shiprocket_settings row found, returning defaults')
       const defaultResponse: ShipRocketSettingsResponse = {
         enabled: false,
         hasCredentials: false,
@@ -205,16 +186,8 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body: ShipRocketSettingsInput = await request.json()
-    console.log('PUT received body:', body)
 
     const supabase = getSupabaseAdmin()
-
-    // Check how many rows exist (for debugging)
-    const { count } = await supabase
-      .from('shiprocket_settings' as never)
-      .select('*', { count: 'exact', head: true })
-
-    console.log('PUT - Total rows in shiprocket_settings:', count)
 
     // Check if settings exist - always order by created_at for consistency
     const { data: existingRows } = await supabase
@@ -224,7 +197,6 @@ export async function PUT(request: NextRequest) {
       .limit(1)
 
     const existing = Array.isArray(existingRows) && existingRows.length > 0 ? existingRows[0] : null
-    console.log('PUT - Existing row ID:', existing ? (existing as { id: string }).id : 'none')
 
     // Build update object (only include provided fields)
     const updateData: Record<string, unknown> = {}
@@ -261,7 +233,6 @@ export async function PUT(request: NextRequest) {
 
     if (existing) {
       // Update existing settings
-      console.log('Updating existing with updateData:', updateData)
       const { data, error } = await supabase
         .from('shiprocket_settings' as never)
         .update(updateData as never)
@@ -269,21 +240,10 @@ export async function PUT(request: NextRequest) {
         .select()
         .single()
 
-      console.log('Update result - data:', data, 'error:', error)
-
       if (error) {
         console.error('Error updating ShipRocket settings:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
-
-      // Verify the update actually persisted by re-fetching
-      const { data: verifyData } = await supabase
-        .from('shiprocket_settings' as never)
-        .select('*')
-        .eq('id', (existing as { id: string }).id)
-        .single()
-
-      console.log('Verification fetch after update:', JSON.stringify(verifyData, null, 2))
 
       result = data
     } else {

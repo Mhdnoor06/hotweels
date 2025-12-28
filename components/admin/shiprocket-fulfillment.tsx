@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
 import {
   Truck,
   Package,
@@ -17,6 +18,9 @@ import {
   Navigation,
   Printer,
   Info,
+  Star,
+  Zap,
+  IndianRupee,
 } from "lucide-react"
 
 interface ShipRocketFulfillmentProps {
@@ -55,6 +59,20 @@ interface TrackingData {
   events: TrackingEvent[]
 }
 
+interface CourierOption {
+  id: number
+  name: string
+  freightCharge: number
+  codCharges: number
+  totalCharge: number
+  estimatedDays: string
+  etd: string
+  rating: number
+  isSurface: boolean
+  isCheapest: boolean
+  isFastest: boolean
+}
+
 export function ShipRocketFulfillment({
   orderId,
   orderStatus,
@@ -77,6 +95,12 @@ export function ShipRocketFulfillment({
   const [showTracking, setShowTracking] = useState(false)
   const [trackingData, setTrackingData] = useState<TrackingData | null>(null)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [showCourierSelection, setShowCourierSelection] = useState(false)
+  const [couriers, setCouriers] = useState<CourierOption[]>([])
+  const [selectedCourier, setSelectedCourier] = useState<number | null>(null)
+  const [loadingCouriers, setLoadingCouriers] = useState(false)
+  // Local state to track AWB generation (for immediate UI feedback)
+  const [localAwbGenerated, setLocalAwbGenerated] = useState(false)
 
   // Check if order or shipment is cancelled
   const isCancelled = orderStatus === 'cancelled' ||
@@ -86,11 +110,13 @@ export function ShipRocketFulfillment({
   // Disable all actions if cancelled, delivered, or payment not verified
   const canCreateShipRocket = isPaymentVerified && !isCancelled && !isDelivered && !shiprocketOrderId && ['pending', 'confirmed', 'processing'].includes(orderStatus)
   const needsSync = !isCancelled && shiprocketOrderId && !shiprocketShipmentId
-  const canGenerateAWB = isPaymentVerified && !isCancelled && !isDelivered && shiprocketShipmentId && !shiprocketAwbCode
-  const canSchedulePickup = isPaymentVerified && !isCancelled && !isDelivered && shiprocketAwbCode && !pickupToken
-  const canGenerateLabel = !isCancelled && shiprocketAwbCode
-  const canTrack = shiprocketAwbCode
+  const canGenerateAWB = isPaymentVerified && !isCancelled && !isDelivered && shiprocketShipmentId && !shiprocketAwbCode && !localAwbGenerated
+  const canSchedulePickup = isPaymentVerified && !isCancelled && !isDelivered && (shiprocketAwbCode || localAwbGenerated) && !pickupToken
+  const canGenerateLabel = !isCancelled && (shiprocketAwbCode || localAwbGenerated)
+  const canTrack = shiprocketAwbCode || localAwbGenerated
   const canCancel = shiprocketOrderId && !isCancelled && !isDelivered && !['RTO_DELIVERED'].includes(shiprocketStatus || '')
+  // Can cancel only shipment (AWB) if AWB is assigned - allows re-assignment
+  const canCancelShipmentOnly = canCancel && (shiprocketAwbCode || localAwbGenerated)
 
   const handleAction = async (action: string, endpoint: string, method: string = 'POST', body?: object) => {
     setLoading(action)
@@ -111,7 +137,9 @@ export function ShipRocketFulfillment({
         throw new Error(data.error || 'Action failed')
       }
 
-      setSuccess(data.message || 'Action completed successfully')
+      const successMessage = data.message || 'Action completed successfully'
+      setSuccess(successMessage)
+      toast.success(successMessage)
       onUpdate() // Refresh order data
 
       // Handle special cases
@@ -124,7 +152,93 @@ export function ShipRocketFulfillment({
         window.open(data.label.url, '_blank')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  // Fetch available couriers for the order
+  const fetchCouriers = async () => {
+    setLoadingCouriers(true)
+    setError(null)
+    setCouriers([])
+    setSelectedCourier(null)
+
+    try {
+      const res = await fetch(`/api/admin/shiprocket/orders/${orderId}/couriers`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch couriers')
+      }
+
+      if (!data.available || data.couriers.length === 0) {
+        throw new Error('No couriers available for this route')
+      }
+
+      setCouriers(data.couriers)
+      // Auto-select the cheapest courier
+      const cheapest = data.couriers.find((c: CourierOption) => c.isCheapest)
+      if (cheapest) {
+        setSelectedCourier(cheapest.id)
+      }
+      setShowCourierSelection(true)
+      toast.success(`Found ${data.couriers.length} courier(s) available`)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setLoadingCouriers(false)
+    }
+  }
+
+  // Generate AWB with selected courier
+  const generateAWBWithCourier = async () => {
+    if (!selectedCourier) {
+      toast.error('Please select a courier')
+      return
+    }
+
+    setLoading('awb')
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const res = await fetch(`/api/admin/shiprocket/orders/${orderId}/awb`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ courierId: selectedCourier, selectCheapest: false }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate AWB')
+      }
+
+      const selectedCourierInfo = couriers.find(c => c.id === selectedCourier)
+      const successMessage = `AWB generated with ${selectedCourierInfo?.name || data.awb?.courierName} @ ₹${selectedCourierInfo?.totalCharge || ''}`
+      setSuccess(successMessage)
+      toast.success(successMessage)
+      setShowCourierSelection(false)
+      setCouriers([])
+      setSelectedCourier(null)
+      setLocalAwbGenerated(true) // Immediately hide AWB button
+      onUpdate() // Refresh order data
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setLoading(null)
     }
@@ -149,7 +263,7 @@ export function ShipRocketFulfillment({
   // Determine current step
   const getStepStatus = () => {
     if (!shiprocketOrderId) return 0
-    if (!shiprocketAwbCode) return 1
+    if (!shiprocketAwbCode && !localAwbGenerated) return 1
     if (!pickupToken) return 2
     if (!['PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(shiprocketStatus || '')) return 3
     if (shiprocketStatus === 'DELIVERED') return 5
@@ -160,7 +274,7 @@ export function ShipRocketFulfillment({
 
   const steps = [
     { label: 'Create Order', icon: Package, done: !!shiprocketOrderId },
-    { label: 'Generate AWB', icon: FileText, done: !!shiprocketAwbCode },
+    { label: 'Generate AWB', icon: FileText, done: !!shiprocketAwbCode || localAwbGenerated },
     { label: 'Schedule Pickup', icon: MapPin, done: !!pickupToken },
     { label: 'In Transit', icon: Truck, done: ['PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'REACHED_DESTINATION_HUB', 'DELIVERED'].includes(shiprocketStatus || '') },
     { label: 'Delivered', icon: CheckCircle2, done: shiprocketStatus === 'DELIVERED' },
@@ -322,15 +436,15 @@ export function ShipRocketFulfillment({
           </button>
         )}
 
-        {/* Generate AWB */}
+        {/* Generate AWB - Opens courier selection */}
         {canGenerateAWB && (
           <button
-            onClick={() => handleAction('awb', 'awb')}
-            disabled={loading === 'awb'}
+            onClick={fetchCouriers}
+            disabled={loadingCouriers || loading === 'awb'}
             className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
-            {loading === 'awb' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-            <span>Generate AWB</span>
+            {loadingCouriers ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+            <span>{loadingCouriers ? 'Fetching Couriers...' : 'Generate AWB'}</span>
           </button>
         )}
 
@@ -414,46 +528,15 @@ export function ShipRocketFulfillment({
           </a>
         )}
 
-        {/* Cancel Shipment */}
+        {/* Cancel Options */}
         {canCancel && (
-          <>
-            {!showCancelConfirm ? (
-              <button
-                onClick={() => setShowCancelConfirm(true)}
-                className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 text-red-600 hover:bg-red-50 rounded-lg text-xs sm:text-sm font-medium transition-colors"
-              >
-                <XCircle className="w-4 h-4" />
-                <span>Cancel Shipment</span>
-              </button>
-            ) : (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 sm:p-3 space-y-2">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                  <p className="text-xs sm:text-sm text-red-700">
-                    Are you sure? This may incur cancellation charges.
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowCancelConfirm(false)}
-                    className="flex-1 py-2 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    No, Keep
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleAction('cancel', 'cancel', 'POST', { force: true })
-                      setShowCancelConfirm(false)
-                    }}
-                    disabled={loading === 'cancel'}
-                    className="flex-1 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-medium"
-                  >
-                    {loading === 'cancel' ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Yes, Cancel'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
+          <button
+            onClick={() => setShowCancelConfirm(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 sm:py-2.5 text-red-600 hover:bg-red-50 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+          >
+            <XCircle className="w-4 h-4" />
+            <span>Cancel Options</span>
+          </button>
         )}
       </div>
 
@@ -505,6 +588,113 @@ export function ShipRocketFulfillment({
             <p className="text-xs mt-0.5">
               Status: {orderStatus}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Courier Selection Modal */}
+      {showCourierSelection && couriers.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setShowCourierSelection(false)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-lg max-h-[85vh] sm:max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Drag handle for mobile */}
+            <div className="sm:hidden w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3" />
+
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Select Courier</h3>
+                <p className="text-xs sm:text-sm text-gray-500">{couriers.length} courier(s) available</p>
+              </div>
+              <button onClick={() => setShowCourierSelection(false)} className="p-2 hover:bg-gray-100 rounded-lg shrink-0 ml-2">
+                <XCircle className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {couriers.map((courier) => (
+                <div
+                  key={courier.id}
+                  onClick={() => setSelectedCourier(courier.id)}
+                  className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                    selectedCourier === courier.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-gray-900 text-sm">{courier.name}</span>
+                        {courier.isCheapest && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                            <IndianRupee className="w-3 h-3" />
+                            Cheapest
+                          </span>
+                        )}
+                        {courier.isFastest && !courier.isCheapest && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                            <Zap className="w-3 h-3" />
+                            Fastest
+                          </span>
+                        )}
+                        {courier.isSurface && (
+                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                            Surface
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {courier.estimatedDays} days
+                        </span>
+                        {courier.rating > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Star className="w-3 h-3 text-yellow-500" />
+                            {courier.rating.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-semibold text-gray-900">₹{courier.totalCharge}</p>
+                      {courier.codCharges > 0 && (
+                        <p className="text-xs text-gray-500">
+                          (₹{courier.freightCharge} + ₹{courier.codCharges} COD)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {selectedCourier === courier.id && (
+                    <div className="mt-2 pt-2 border-t border-blue-200">
+                      <div className="flex items-center gap-1 text-blue-600 text-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Selected
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 border-t border-gray-200 sticky bottom-0 bg-white">
+              <button
+                onClick={generateAWBWithCourier}
+                disabled={!selectedCourier || loading === 'awb'}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                {loading === 'awb' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating AWB...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4" />
+                    Generate AWB with Selected Courier
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -574,6 +764,136 @@ export function ShipRocketFulfillment({
                   View Full Tracking
                 </a>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Options Modal */}
+      {showCancelConfirm && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"
+          onClick={() => !loading && setShowCancelConfirm(false)}
+        >
+          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-md" onClick={e => e.stopPropagation()}>
+            {/* Drag handle for mobile */}
+            <div className="sm:hidden w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3" />
+
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Cancel Options</h3>
+                  <p className="text-xs text-gray-500">Choose cancellation type</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={!!loading}
+                className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <XCircle className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-700">
+                  Cancellation may incur charges depending on shipment status.
+                </p>
+              </div>
+
+              {/* Cancel Shipment Only - Only show if AWB is assigned */}
+              {canCancelShipmentOnly && (
+                <button
+                  onClick={async () => {
+                    await handleAction('cancel-shipment', 'cancel', 'POST', { mode: 'shipment', force: true })
+                    setLocalAwbGenerated(false)
+                    setShowCancelConfirm(false)
+                  }}
+                  disabled={loading === 'cancel-shipment' || loading === 'cancel-order'}
+                  className="w-full p-4 bg-white border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 rounded-xl text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                      {loading === 'cancel-shipment' ? (
+                        <Loader2 className="w-5 h-5 text-orange-600 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-5 h-5 text-orange-600" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                        {loading === 'cancel-shipment' ? 'Cancelling Shipment...' : 'Cancel Shipment Only'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Cancels AWB and courier. You can assign a new courier after this.
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                          Keeps Order Active
+                        </span>
+                      </div>
+                    </div>
+                    {loading === 'cancel-shipment' ? (
+                      <Loader2 className="w-5 h-5 text-orange-500 animate-spin shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" />
+                    )}
+                  </div>
+                </button>
+              )}
+
+              {/* Cancel Entire Order */}
+              <button
+                onClick={async () => {
+                  await handleAction('cancel-order', 'cancel', 'POST', { mode: 'order', force: true })
+                  setShowCancelConfirm(false)
+                }}
+                disabled={loading === 'cancel-order' || loading === 'cancel-shipment'}
+                className="w-full p-4 bg-white border-2 border-red-200 hover:border-red-400 hover:bg-red-50 rounded-xl text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    {loading === 'cancel-order' ? (
+                      <Loader2 className="w-5 h-5 text-red-600 animate-spin" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                      {loading === 'cancel-order' ? 'Cancelling Order...' : 'Cancel Entire Order'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Cancels both order and shipment in ShipRocket completely.
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                        Cannot be undone
+                      </span>
+                    </div>
+                  </div>
+                  {loading === 'cancel-order' ? (
+                    <Loader2 className="w-5 h-5 text-red-500 animate-spin shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" />
+                  )}
+                </div>
+              </button>
+            </div>
+
+            <div className="p-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={!!loading}
+                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Please wait...' : 'Go Back'}
+              </button>
             </div>
           </div>
         </div>

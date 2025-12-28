@@ -41,8 +41,6 @@ export async function GET() {
       settingsData.shipping_charges_collection_enabled = false
     }
 
-    console.log('Settings API returning - shipping_charges_amount:', settingsData.shipping_charges_amount)
-    
     // Return with cache control headers to prevent caching
     return NextResponse.json(
       { settings: settingsData },

@@ -73,8 +73,6 @@ export default function CheckoutPage() {
           const data = await res.json()
           // Handle both formats: {settings: {...}} or direct settings object
           const settingsData = data.settings || data
-          console.log('Fetched settings at checkout:', settingsData)
-          console.log('Shipping charges amount:', settingsData?.shipping_charges_amount)
           setSettings(settingsData)
         } else {
           console.error("Failed to fetch settings:", await res.text())

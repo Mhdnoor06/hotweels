@@ -74,7 +74,10 @@ export function AdminOrders() {
   const fetchOrders = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/orders', { credentials: 'include' })
+      const response = await fetch(`/api/admin/orders?_t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      })
       const data = await response.json()
       if (Array.isArray(data)) {
         setOrders(data)
@@ -666,17 +669,24 @@ export function AdminOrders() {
                     estimatedDeliveryDate={selectedOrder.estimated_delivery_date}
                     isPaymentVerified={isPaymentVerified(selectedOrder)}
                     onUpdate={() => {
-                      // Refresh order data
-                      fetchOrders()
-                      // Also refresh selected order
-                      fetch(`/api/admin/orders?orderId=${selectedOrder.id}`, { credentials: 'include' })
-                        .then(res => res.json())
-                        .then(data => {
-                          if (data && !Array.isArray(data)) {
-                            setSelectedOrder(data)
-                          }
+                      // Small delay to ensure database commit is complete
+                      setTimeout(() => {
+                        // Refresh order data
+                        fetchOrders()
+                        // Also refresh selected order with cache busting
+                        fetch(`/api/admin/orders?orderId=${selectedOrder.id}&_t=${Date.now()}`, {
+                          credentials: 'include',
+                          cache: 'no-store',
+                          headers: { 'Cache-Control': 'no-cache' }
                         })
-                        .catch(console.error)
+                          .then(res => res.json())
+                          .then(data => {
+                            if (data && !Array.isArray(data)) {
+                              setSelectedOrder(data)
+                            }
+                          })
+                          .catch(console.error)
+                      }, 500) // 500ms delay to ensure DB commit
                     }}
                   />
                 </div>

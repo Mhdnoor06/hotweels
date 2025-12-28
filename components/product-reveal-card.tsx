@@ -2,10 +2,11 @@
 
 import { motion, useReducedMotion } from "framer-motion"
 import { buttonVariants } from "@/components/ui/button"
-import { ShoppingCart, Star, Heart } from "lucide-react"
+import { ShoppingCart, Star, Heart, Zap } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface ProductRevealCardProps {
   name?: string
@@ -18,7 +19,6 @@ interface ProductRevealCardProps {
   series?: string
   year?: number
   color?: string
-  rarity?: string
   productId?: string
   stock?: number
   isFavorite?: boolean
@@ -40,7 +40,6 @@ export function ProductRevealCard({
   series = "HW Classics",
   year = 2024,
   color = "Red",
-  rarity = "Common",
   productId,
   stock = 10,
   isFavorite = false,
@@ -284,10 +283,6 @@ export function ProductRevealCard({
               <div className="bg-gray-100 rounded-lg p-1.5 sm:p-2 text-center">
                 <div className="font-semibold">{color}</div>
                 <div className="text-gray-500">Color</div>
-              </div>
-              <div className="bg-gray-100 rounded-lg p-1.5 sm:p-2 text-center">
-                <div className="font-semibold">{rarity}</div>
-                <div className="text-gray-500">Rarity</div>
               </div>
             </div>
           </motion.div>

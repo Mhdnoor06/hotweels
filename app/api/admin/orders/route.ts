@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/database.types'
 import { verifyAdminAuthFromRequest } from '@/lib/admin-auth'
+import { notifyOrderStatusChange } from '@/lib/notifications'
+
+export const dynamic = 'force-dynamic'
 
 type OrderUpdate = Database['public']['Tables']['orders']['Update']
 
@@ -90,6 +93,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
     }
 
+    // Get current order to check for status change
+    const { data: currentOrder } = await supabaseAdmin
+      .from('orders')
+      .select('user_id, status')
+      .eq('id', orderId)
+      .single() as { data: { user_id: string | null; status: string } | null }
+
     const updateData: OrderUpdate = {}
     if (status) updateData.status = status.toLowerCase()
     if (payment_status) updateData.payment_status = payment_status.toLowerCase()
@@ -108,6 +118,15 @@ export async function PATCH(request: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Send notification if status changed
+    if (status && currentOrder?.user_id && currentOrder.status !== status.toLowerCase()) {
+      await notifyOrderStatusChange(
+        currentOrder.user_id,
+        orderId,
+        status.toLowerCase()
+      )
     }
 
     return NextResponse.json(data)

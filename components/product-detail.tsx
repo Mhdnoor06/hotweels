@@ -27,8 +27,6 @@ import { Navbar } from "@/components/navbar"
 import { useCart } from "@/context/cart-context"
 import { useWishlist } from "@/context/wishlist-context"
 
-const conditionOptions = ["Mint", "Near Mint", "Excellent", "Good"]
-
 export function ProductDetail({ productId }: { productId: string }) {
   const router = useRouter()
   const [product, setProduct] = useState<Product | null>(null)
@@ -37,7 +35,6 @@ export function ProductDetail({ productId }: { productId: string }) {
   const [settings, setSettings] = useState<{ cod_enabled?: boolean } | null>(null)
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [selectedCondition, setSelectedCondition] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
@@ -178,21 +175,6 @@ export function ProductDetail({ productId }: { productId: string }) {
     toggleWishlist(product)
   }
 
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case "Common":
-        return "bg-zinc-500/80"
-      case "Uncommon":
-        return "bg-emerald-500/80"
-      case "Rare":
-        return "bg-blue-500/80"
-      case "Super Rare":
-        return "bg-amber-500/80"
-      default:
-        return "bg-zinc-500/80"
-    }
-  }
-
   const isProductInCart = product ? isInCart(product.id) : false
   const isProductInWishlist = product ? isInWishlist(product.id) : false
 
@@ -271,10 +253,11 @@ export function ProductDetail({ productId }: { productId: string }) {
                 )}
 
                 {/* Badges */}
-                <div className="absolute left-2 sm:left-4 top-2 sm:top-4 flex flex-col gap-1.5 sm:gap-2">
-                  {discount > 0 && <Badge className="bg-red-500 hover:bg-red-500/90 text-white text-[10px] sm:text-xs">-{discount}%</Badge>}
-                  <Badge className={`${getRarityColor(product.rarity)} text-white text-[10px] sm:text-xs`}>{product.rarity}</Badge>
-                </div>
+                {discount > 0 && (
+                  <div className="absolute left-2 sm:left-4 top-2 sm:top-4">
+                    <Badge className="bg-red-500 hover:bg-red-500/90 text-white text-[10px] sm:text-xs">-{discount}%</Badge>
+                  </div>
+                )}
 
                 {/* Wishlist button */}
                 <Button
@@ -344,26 +327,6 @@ export function ProductDetail({ productId }: { productId: string }) {
 
             {/* Description */}
             <p className="text-sm sm:text-base text-gray-600 leading-relaxed">{product.description}</p>
-
-            {/* Condition Selection */}
-            <div className="space-y-2 sm:space-y-3">
-              <div className="text-xs sm:text-sm text-gray-500">Condition</div>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {conditionOptions.map((condition) => (
-                  <button
-                    key={condition}
-                    className={`min-w-[4rem] sm:min-w-[5rem] rounded-md sm:rounded-lg border px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all ${
-                      selectedCondition === condition
-                        ? "border-red-500 bg-red-50 text-red-600"
-                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                    }`}
-                    onClick={() => setSelectedCondition(condition)}
-                  >
-                    {condition}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Quantity */}
             <div className="space-y-2 sm:space-y-3">
@@ -446,8 +409,6 @@ export function ProductDetail({ productId }: { productId: string }) {
                   <span className="text-gray-900">{product.color}</span>
                   <span className="text-gray-500">Series</span>
                   <span className="text-gray-900">{product.series}</span>
-                  <span className="text-gray-500">Rarity</span>
-                  <span className="text-gray-900">{product.rarity}</span>
                 </div>
               </CardContent>
             </Card>

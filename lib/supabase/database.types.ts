@@ -17,7 +17,6 @@ export interface Database {
           price: number
           year: number
           color: string
-          rarity: 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Treasure Hunt'
           image: string
           images: string[] | null
           rating: number
@@ -35,7 +34,6 @@ export interface Database {
           price: number
           year: number
           color: string
-          rarity: 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Treasure Hunt'
           image: string
           images?: string[] | null
           rating?: number
@@ -53,7 +51,6 @@ export interface Database {
           price?: number
           year?: number
           color?: string
-          rarity?: 'Common' | 'Uncommon' | 'Rare' | 'Super Rare' | 'Treasure Hunt'
           image?: string
           images?: string[] | null
           rating?: number
@@ -291,6 +288,47 @@ export interface Database {
           updated_at?: string
         }
       }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string
+          type: 'order_status' | 'payment' | 'shipping' | 'promo' | 'system'
+          order_id: string | null
+          is_read: boolean
+          read_at: string | null
+          metadata: Json
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          message: string
+          type: 'order_status' | 'payment' | 'shipping' | 'promo' | 'system'
+          order_id?: string | null
+          is_read?: boolean
+          read_at?: string | null
+          metadata?: Json
+          created_at?: string
+          expires_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          message?: string
+          type?: 'order_status' | 'payment' | 'shipping' | 'promo' | 'system'
+          order_id?: string | null
+          is_read?: boolean
+          read_at?: string | null
+          metadata?: Json
+          created_at?: string
+          expires_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -311,3 +349,5 @@ export type OrderItem = Database['public']['Tables']['order_items']['Row']
 export type WishlistItem = Database['public']['Tables']['wishlist']['Row']
 export type User = Database['public']['Tables']['users']['Row']
 export type StoreSettings = Database['public']['Tables']['store_settings']['Row']
+export type Notification = Database['public']['Tables']['notifications']['Row']
+export type NotificationType = 'order_status' | 'payment' | 'shipping' | 'promo' | 'system'
