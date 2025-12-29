@@ -1,8 +1,20 @@
 import { Metadata } from "next"
+import dynamic from "next/dynamic"
 import WheelsFramsHero from "../components/hero";
-import FeaturedCollection from "../components/featured-collection";
 import { MobileCartBar } from "@/components/mobile-cart-bar";
 import { FAQSchema, LocalBusinessSchema } from "@/components/structured-data";
+
+// Dynamically import FeaturedCollection (below the fold) to reduce initial bundle
+const FeaturedCollection = dynamic(
+  () => import("../components/featured-collection"),
+  {
+    loading: () => (
+      <div className="py-20 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    ),
+  }
+)
 
 export const metadata: Metadata = {
   title: 'Wheels Frames - Premium Die-Cast Model Cars | Ferrari, Lamborghini, Porsche',

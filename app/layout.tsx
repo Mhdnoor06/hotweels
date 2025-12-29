@@ -8,17 +8,20 @@ import { OrganizationSchema, WebsiteSchema } from "@/components/structured-data"
 const geistSans = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = JetBrains_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const poppins = Poppins({
   variable: "--font-poppins",
   weight: ["400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -27,7 +30,7 @@ export const metadata: Metadata = {
     default: 'Wheels Frames - Premium Die-Cast Model Cars Collection',
     template: '%s | Wheels Frames',
   },
-  description: 'Discover premium die-cast model cars from Ferrari, Lamborghini, Porsche & more. High-quality collectible scale models with free shipping.',
+  description: 'Shop premium die-cast model cars from Ferrari, Lamborghini, Porsche & more. India\'s finest collection of authentic scale models. Free shipping on orders over ₹999.',
   keywords: ['die-cast cars', 'model cars', 'collectible cars', 'Ferrari models', 'Lamborghini models', 'Porsche models', 'scale models', 'car collection'],
   authors: [{ name: 'Wheels Frames' }],
   creator: 'Wheels Frames',
@@ -39,25 +42,25 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'en_US',
+    locale: 'en_IN',
     url: 'https://wheelsframes.com',
     siteName: 'Wheels Frames',
-    title: 'Wheels Frames - Premium Die-Cast Model Cars Collection',
-    description: 'Discover premium die-cast model cars from Ferrari, Lamborghini, Porsche & more.',
+    title: 'Wheels Frames - Premium Die-Cast Model Cars',
+    description: 'Shop premium die-cast model cars from Ferrari, Lamborghini, Porsche & more. India\'s finest collection of authentic scale models.',
     images: [
       {
-        url: '/og-image.jpg',
+        url: 'https://wheelsframes.com/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Wheels Frames - Premium Die-Cast Collection',
+        alt: 'Wheels Frames - Premium Die-Cast Model Cars Collection',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Wheels Frames - Premium Die-Cast Model Cars',
-    description: 'Discover premium die-cast model cars from Ferrari, Lamborghini, Porsche & more.',
-    images: ['/og-image.jpg'],
+    description: 'Shop premium die-cast model cars from Ferrari, Lamborghini, Porsche & more. India\'s finest collection of authentic scale models.',
+    images: ['https://wheelsframes.com/og-image.jpg'],
   },
   robots: {
     index: true,

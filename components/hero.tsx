@@ -1104,7 +1104,7 @@ export default function WheelsFramsHero() {
                 height={120}
                 sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 128px"
                 className="object-contain h-24 sm:h-28 lg:h-32 w-auto"
-                priority
+                loading="lazy"
                 style={{ display: 'block' }}
               />
             </div>
