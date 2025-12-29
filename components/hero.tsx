@@ -169,32 +169,38 @@ const generateTickData = () => {
 
 const TICK_DATA = generateTickData()
 
-// Pre-generate particle animation configs
-const generateParticleConfigs = (count: number) => {
+// Seeded random for deterministic values (avoids hydration mismatch)
+const seededRandom = (seed: number) => {
+  const x = Math.sin(seed * 9999) * 10000
+  return x - Math.floor(x)
+}
+
+// Pre-generate particle animation configs with deterministic values
+const generateParticleConfigs = (count: number, seed: number) => {
   return Array.from({ length: count }, (_, i) => ({
-    startX: Math.random() * 100,
-    startY: Math.random() * 100,
-    yOffset: -200 - Math.random() * 200,
-    xOffset: (Math.random() - 0.5) * 100,
-    duration: 3 + Math.random() * 2,
-    repeatDelay: Math.random() * 2,
+    startX: seededRandom(seed + i * 1) * 100,
+    startY: seededRandom(seed + i * 2) * 100,
+    yOffset: -200 - seededRandom(seed + i * 3) * 200,
+    xOffset: (seededRandom(seed + i * 4) - 0.5) * 100,
+    duration: 3 + seededRandom(seed + i * 5) * 2,
+    repeatDelay: seededRandom(seed + i * 6) * 2,
   }))
 }
 
-const PARTICLE_CONFIGS_MOBILE = generateParticleConfigs(8)
-const PARTICLE_CONFIGS_DESKTOP = generateParticleConfigs(15)
+const PARTICLE_CONFIGS_MOBILE = generateParticleConfigs(8, 42)
+const PARTICLE_CONFIGS_DESKTOP = generateParticleConfigs(15, 42)
 
-// Pre-generate speed line configs
-const generateSpeedLineConfigs = (count: number) => {
+// Pre-generate speed line configs with deterministic values
+const generateSpeedLineConfigs = (count: number, seed: number) => {
   return Array.from({ length: count }, (_, i) => ({
     top: `${20 + i * 10}%`,
-    width: `${30 + Math.random() * 20}%`,
-    opacity: 0.3 + Math.random() * 0.3,
+    width: `${30 + seededRandom(seed + i * 7) * 20}%`,
+    opacity: 0.3 + seededRandom(seed + i * 8) * 0.3,
   }))
 }
 
-const SPEED_LINES_MOBILE = generateSpeedLineConfigs(5)
-const SPEED_LINES_DESKTOP = generateSpeedLineConfigs(8)
+const SPEED_LINES_MOBILE = generateSpeedLineConfigs(5, 100)
+const SPEED_LINES_DESKTOP = generateSpeedLineConfigs(8, 100)
 
 // Memoized Floating particle component
 const FloatingParticle = memo(function FloatingParticle({
