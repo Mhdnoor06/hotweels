@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTokenFromCookies } from '@/lib/admin-auth'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
 export async function POST(request: NextRequest) {
   try {
     const token = getTokenFromCookies(request)
@@ -21,14 +18,19 @@ export async function POST(request: NextRequest) {
 
     // If token exists, sign out from Supabase
     if (token) {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (supabaseUrl && supabaseAnonKey) {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          global: {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
-        }
-      })
-      await supabase.auth.signOut()
+        })
+        await supabase.auth.signOut()
+      }
     }
 
     return response
