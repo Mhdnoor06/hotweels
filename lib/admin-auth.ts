@@ -1,26 +1,44 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './supabase/database.types'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Lazy initialization for Cloudflare Workers compatibility
+let _supabaseAdmin: SupabaseClient<Database> | null = null
 
-// Create admin client for server-side operations
-const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+function getSupabaseAdmin(): SupabaseClient<Database> {
+  if (!_supabaseAdmin) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase environment variables')
+    }
+
+    _supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
   }
-})
+  return _supabaseAdmin
+}
 
 /**
  * Verify if a user is an admin from Supabase token
  */
 export async function verifyAdminToken(token: string): Promise<{ isAdmin: boolean; userId?: string }> {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !anonKey) {
+      throw new Error('Missing Supabase environment variables')
+    }
+
     // Create a client with the user's token
     const supabase = createClient<Database>(
       supabaseUrl,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      anonKey,
       {
         global: {
           headers: {
@@ -38,7 +56,7 @@ export async function verifyAdminToken(token: string): Promise<{ isAdmin: boolea
     }
 
     // Check if user has admin role in the users table
-    const { data: userData, error: roleError } = await supabaseAdmin
+    const { data: userData, error: roleError } = await getSupabaseAdmin()
       .from('users')
       .select('role')
       .eq('id', user.id)
@@ -89,7 +107,7 @@ export async function verifyAdminAuthFromRequest(request: { cookies: { get: (nam
  */
 export async function checkAdminExists(): Promise<boolean> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('users')
       .select('id')
       .eq('role', 'admin')
@@ -108,15 +126,17 @@ export async function checkAdminExists(): Promise<boolean> {
  */
 export async function createAdminUser(userId: string, email: string, name?: string): Promise<{ error: string | null }> {
   try {
+    const admin = getSupabaseAdmin()
+
     // Update the user role to admin
-    const { error } = await supabaseAdmin
+    const { error } = await admin
       .from('users')
       .update({ role: 'admin' } as never)
       .eq('id', userId)
 
     if (error) {
       // If update fails, try inserting (in case trigger didn't create user record)
-      const { error: insertError } = await supabaseAdmin
+      const { error: insertError } = await admin
         .from('users')
         .insert({
           id: userId,
