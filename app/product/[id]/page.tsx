@@ -45,11 +45,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: product.name,
       description,
+      alternates: {
+        canonical: `https://wheelsframes.com/product/${id}`,
+      },
       openGraph: {
         title: `${product.name} | Wheels Frames`,
         description,
         images: imageUrl ? [{ url: imageUrl, alt: product.name }] : [],
         type: 'website',
+        url: `https://wheelsframes.com/product/${id}`,
       },
       twitter: {
         card: 'summary_large_image',
@@ -65,19 +69,42 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+type Review = {
+  rating: number
+  author_name: string
+  created_at: string
+  comment: string
+}
+
 export default async function ProductDetailPage({ params }: Props) {
   const { id } = await params
 
-  // Fetch product for structured data
+  // Fetch product and reviews for structured data
   let product: Product | null = null
+  let reviews: Review[] = []
+
   try {
     const supabase = getSupabaseAdmin()
-    const { data } = await supabase
+
+    // Fetch product
+    const { data: productData } = await supabase
       .from('products')
       .select('*')
       .eq('id', id)
       .single()
-    product = data as Product | null
+    product = productData as Product | null
+
+    // Fetch approved reviews for schema
+    if (product) {
+      const { data: reviewsData } = await supabase
+        .from('reviews')
+        .select('rating, author_name, created_at, comment')
+        .eq('product_id', id)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(10)
+      reviews = (reviewsData as Review[]) || []
+    }
   } catch {
     // Product will be null, component will handle error
   }
@@ -86,7 +113,7 @@ export default async function ProductDetailPage({ params }: Props) {
     <>
       {product && (
         <>
-          <ProductSchema product={product} />
+          <ProductSchema product={product} reviews={reviews} />
           <BreadcrumbSchema
             items={[
               { name: 'Home', url: 'https://wheelsframes.com' },
