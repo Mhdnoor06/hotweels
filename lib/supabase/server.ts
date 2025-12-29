@@ -25,8 +25,15 @@ export function getSupabaseAdmin(): SupabaseClient<Database> {
 }
 
 // Legacy export for backward compatibility - now uses getter
+// Proxy properly binds methods to preserve 'this' context
 export const supabaseAdmin = new Proxy({} as SupabaseClient<Database>, {
   get(_, prop) {
-    return (getSupabaseAdmin() as any)[prop]
+    const client = getSupabaseAdmin()
+    const value = (client as any)[prop]
+    // Bind functions to the client to preserve 'this' context
+    if (typeof value === 'function') {
+      return value.bind(client)
+    }
+    return value
   }
 })
