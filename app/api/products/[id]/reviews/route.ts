@@ -21,10 +21,16 @@ async function getUserFromRequest(request: Request) {
 
   const token = authHeader.split(' ')[1]
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  // Get env vars at runtime for Cloudflare compatibility
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase environment variables')
+    return null
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
   const { data: { user }, error } = await supabase.auth.getUser(token)
 
