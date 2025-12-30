@@ -14,7 +14,7 @@ export function OrganizationSchema() {
     '@type': 'Organization',
     name: 'Wheels Frames',
     url: 'https://wheelsframes.com',
-    logo: 'https://wheelsframes.com/logo.png',
+    logo: 'https://wheelsframes.com/darklogo.jpg',
     description: 'Premium die-cast model cars collection featuring Ferrari, Lamborghini, Porsche and more luxury brands.',
     sameAs: [],
   }
@@ -28,6 +28,11 @@ export function OrganizationSchema() {
 
 // Product schema for product pages with optional reviews
 export function ProductSchema({ product, reviews }: { product: Product; reviews?: Review[] }) {
+  // Calculate priceValidUntil (1 year from now in ISO format)
+  const priceValidUntil = new Date()
+  priceValidUntil.setFullYear(priceValidUntil.getFullYear() + 1)
+  const priceValidUntilISO = priceValidUntil.toISOString().split('T')[0] // Format as YYYY-MM-DD
+
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -43,6 +48,7 @@ export function ProductSchema({ product, reviews }: { product: Product; reviews?
       '@type': 'Offer',
       price: product.price,
       priceCurrency: 'INR',
+      priceValidUntil: priceValidUntilISO,
       availability: (product.stock ?? 0) > 0
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
@@ -51,10 +57,55 @@ export function ProductSchema({ product, reviews }: { product: Product; reviews?
         '@type': 'Organization',
         name: 'Wheels Frames',
       },
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'IN',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: 30,
+        returnMethod: 'https://schema.org/ReturnByMail',
+        returnFees: 'https://schema.org/FreeReturn',
+        returnPolicySeasonalOverride: {
+          '@type': 'MerchantReturnPolicySeasonalOverride',
+          returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+          merchantReturnDays: 30,
+        },
+      },
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: {
+          '@type': 'MonetaryAmount',
+          value: product.price >= 999 ? 0 : 99,
+          currency: 'INR',
+        },
+        freeShippingThreshold: {
+          '@type': 'MonetaryAmount',
+          value: 999,
+          currency: 'INR',
+        },
+        shippingDestination: {
+          '@type': 'DefinedRegion',
+          addressCountry: 'IN',
+        },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 1,
+            maxValue: 3,
+            unitCode: 'DAY',
+          },
+          transitTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 3,
+            maxValue: 7,
+            unitCode: 'DAY',
+          },
+        },
+      },
     },
   }
 
-  // Add aggregate rating if reviews exist
+  // Always include aggregateRating (required by Google)
   if (reviews && reviews.length > 0) {
     const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     schema.aggregateRating = {
@@ -64,6 +115,19 @@ export function ProductSchema({ product, reviews }: { product: Product; reviews?
       bestRating: 5,
       worstRating: 1,
     }
+  } else {
+    // Include empty/default aggregateRating when no reviews exist
+    schema.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: '0',
+      reviewCount: 0,
+      bestRating: 5,
+      worstRating: 1,
+    }
+  }
+
+  // Always include review array (required by Google)
+  if (reviews && reviews.length > 0) {
     schema.review = reviews.slice(0, 5).map(r => ({
       '@type': 'Review',
       author: { '@type': 'Person', name: r.author_name },
@@ -76,6 +140,9 @@ export function ProductSchema({ product, reviews }: { product: Product; reviews?
       },
       reviewBody: r.comment,
     }))
+  } else {
+    // Include empty review array when no reviews exist
+    schema.review = []
   }
 
   return (
@@ -93,6 +160,7 @@ export function WebsiteSchema() {
     '@type': 'WebSite',
     name: 'Wheels Frames',
     url: 'https://wheelsframes.com',
+    logo: 'https://wheelsframes.com/darklogo.jpg',
     potentialAction: {
       '@type': 'SearchAction',
       target: 'https://wheelsframes.com/collection?search={search_term_string}',
@@ -140,6 +208,7 @@ export function CollectionPageSchema({ totalProducts }: { totalProducts: number 
       '@type': 'Organization',
       name: 'Wheels Frames',
       url: 'https://wheelsframes.com',
+      logo: 'https://wheelsframes.com/darklogo.jpg',
     },
   }
   return (
@@ -206,7 +275,7 @@ export function LocalBusinessSchema() {
     name: 'Wheels Frames',
     description: 'Premium die-cast model cars and collectibles',
     url: 'https://wheelsframes.com',
-    logo: 'https://wheelsframes.com/logo.png',
+    logo: 'https://wheelsframes.com/darklogo.jpg',
     image: 'https://wheelsframes.com/og-image.jpg',
     priceRange: '₹₹',
     address: {

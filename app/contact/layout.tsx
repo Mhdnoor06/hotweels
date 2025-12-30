@@ -6,6 +6,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Contact Us | Wheels Frames',
     description: 'Get in touch with Wheels Frames for any questions or support.',
+    images: [
+      {
+        url: 'https://wheelsframes.com/darklogo.jpg',
+        width: 512,
+        height: 512,
+        alt: 'Wheels Frames Logo',
+      },
+    ],
   },
 }
 

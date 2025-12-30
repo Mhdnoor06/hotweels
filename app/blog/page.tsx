@@ -6,6 +6,18 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://wheelsframes.com/blog',
   },
+  openGraph: {
+    title: 'Blog - Die-Cast Model Car News & Guides | Wheels Frames',
+    description: 'Expert guides on die-cast model car collecting, reviews, and news from the world of scale models.',
+    images: [
+      {
+        url: 'https://wheelsframes.com/darklogo.jpg',
+        width: 512,
+        height: 512,
+        alt: 'Wheels Frames Logo',
+      },
+    ],
+  },
 }
 
 export default function BlogPage() {

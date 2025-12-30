@@ -122,7 +122,7 @@ export default function Footer() {
             transition={{ duration: 0.5 }}
           >
             <Image 
-              src="/logo.png" 
+              src="/darklogo.jpg" 
               alt="Wheels Frams" 
               width={150} 
               height={150}

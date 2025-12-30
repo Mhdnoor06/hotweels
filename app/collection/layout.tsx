@@ -9,6 +9,14 @@ export const metadata: Metadata = {
     description: 'Shop our complete collection of premium die-cast model cars from top luxury brands.',
     url: 'https://wheelsframes.com/collection',
     type: 'website',
+    images: [
+      {
+        url: 'https://wheelsframes.com/darklogo.jpg',
+        width: 512,
+        height: 512,
+        alt: 'Wheels Frames Logo',
+      },
+    ],
   },
   alternates: {
     canonical: 'https://wheelsframes.com/collection',

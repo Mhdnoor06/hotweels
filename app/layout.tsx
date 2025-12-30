@@ -54,6 +54,12 @@ export const metadata: Metadata = {
         height: 630,
         alt: 'Wheels Frames - Premium Die-Cast Model Cars Collection',
       },
+      {
+        url: 'https://wheelsframes.com/darklogo.jpg',
+        width: 512,
+        height: 512,
+        alt: 'Wheels Frames Logo',
+      },
     ],
   },
   twitter: {

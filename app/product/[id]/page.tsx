@@ -51,7 +51,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       openGraph: {
         title: `${product.name} | Wheels Frames`,
         description,
-        images: imageUrl ? [{ url: imageUrl, alt: product.name }] : [],
+        images: imageUrl 
+          ? [
+              { url: imageUrl, alt: product.name },
+              { url: 'https://wheelsframes.com/darklogo.jpg', width: 512, height: 512, alt: 'Wheels Frames Logo' }
+            ]
+          : [{ url: 'https://wheelsframes.com/darklogo.jpg', width: 512, height: 512, alt: 'Wheels Frames Logo' }],
         type: 'website',
         url: `https://wheelsframes.com/product/${id}`,
       },

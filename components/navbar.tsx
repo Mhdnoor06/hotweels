@@ -160,7 +160,7 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
         {isHomePage && (
           <Link href="/" className="flex items-center justify-center">
             <Image 
-              src={isScrolled ? "/darklogo.jpg" : "/logo.png"}
+              src="/darklogo.jpg"
               alt="Wheels Frams" 
               width={120} 
               height={120}
