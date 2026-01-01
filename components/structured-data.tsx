@@ -13,9 +13,10 @@ export function OrganizationSchema() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'Wheels Frames',
+    alternateName: ['Wheels Frames', 'WheelsFrames', 'Wheels Frames India'],
     url: 'https://wheelsframes.com',
     logo: 'https://wheelsframes.com/darklogo.jpg',
-    description: 'Premium die-cast model cars collection featuring Ferrari, Lamborghini, Porsche and more luxury brands.',
+    description: 'Wheels Frames - India\'s premier destination for premium die-cast model cars featuring Ferrari, Lamborghini, Porsche and more luxury brands.',
     sameAs: [],
   }
   return (

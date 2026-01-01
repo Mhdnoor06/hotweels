@@ -682,10 +682,10 @@ export default function WheelsFramsHero() {
       {/* Navigation */}
       <nav ref={navRef} className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 lg:py-6 bg-gray-100/80 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none">
         <div className="flex items-center gap-2 sm:gap-3">
-          <Image 
-            src="/darklogo.jpg" 
-            alt="Wheels Frams Logo" 
-            width={40} 
+          <Image
+            src="/darklogo.jpg"
+            alt="Wheels Frames Logo"
+            width={40}
             height={40}
             className="h-8 sm:h-10 w-auto object-contain rounded-full"
             priority
@@ -917,15 +917,15 @@ export default function WheelsFramsHero() {
           </div>
         </div>
 
-        {/* WHEELS FRAMS Logo */}
+        {/* WHEELS FRAMES Logo */}
         <div ref={wheelsFramsTextRef} className="hidden lg:block absolute top-16 sm:top-20 lg:top-24 left-1/2 -translate-x-1/2 z-20 px-6 sm:px-8 md:px-12 text-center w-full max-w-full overflow-visible">
-          <span
+          <h1
             className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text tracking-tighter transition-all duration-500 whitespace-nowrap inline-block"
             style={{ backgroundImage: currentGradient.text }}
           >
-            WHEELS FRAMS
-          </span>
-          <p className="text-center text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2 tracking-[0.2em] sm:tracking-[0.3em] uppercase">Since 1968</p>
+            WHEELS FRAMES
+          </h1>
+          <p className="text-center text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2 tracking-[0.2em] sm:tracking-[0.3em] uppercase">Premium Die-Cast Model Cars India</p>
         </div>
 
         {/* Speed lines - using pre-computed configs */}
@@ -988,7 +988,7 @@ export default function WheelsFramsHero() {
             <div className="relative w-full">
               <Image
                 src={currentCar.image}
-                alt={`Wheels Frams ${currentCar.name}`}
+                alt={`Wheels Frames ${currentCar.name} Die-Cast Model`}
                 width={1200}
                 height={800}
                 sizes="(max-width: 640px) 280px, (max-width: 768px) 512px, (max-width: 1024px) 672px, 896px"

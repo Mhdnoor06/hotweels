@@ -123,7 +123,7 @@ export default function Footer() {
           >
             <Image 
               src="/darklogo.jpg" 
-              alt="Wheels Frams" 
+              alt="Wheels Frames Logo" 
               width={150} 
               height={150}
               className="h-16 w-auto object-contain mb-4"
@@ -174,7 +174,7 @@ export default function Footer() {
           className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 relative"
         >
           <div className="flex flex-col gap-1">
-            <p className="text-gray-600 text-sm">© 2025 Wheels Frams. All rights reserved.</p>
+            <p className="text-gray-600 text-sm">© 2025 Wheels Frames. All rights reserved.</p>
             <p className="text-gray-600 text-xs">
               Developed by{" "}
               <a

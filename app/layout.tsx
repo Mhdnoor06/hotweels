@@ -27,11 +27,11 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   metadataBase: new URL('https://wheelsframes.com'),
   title: {
-    default: 'Wheels Frames - Premium Die-Cast Model Cars Collection',
+    default: 'Wheels Frames | Premium Die-Cast Model Cars India',
     template: '%s | Wheels Frames',
   },
-  description: 'Shop premium die-cast model cars from Ferrari, Lamborghini, Porsche & more. India\'s finest collection of authentic scale models. Free shipping on orders over ₹999.',
-  keywords: ['die-cast cars', 'model cars', 'collectible cars', 'Ferrari models', 'Lamborghini models', 'Porsche models', 'scale models', 'car collection'],
+  description: 'Wheels Frames - India\'s finest collection of premium die-cast model cars. Shop authentic scale models from Ferrari, Lamborghini, Porsche & more. Free shipping on orders over ₹999.',
+  keywords: ['Wheels Frames', 'WheelsFrames', 'die-cast cars', 'model cars India', 'collectible cars', 'Ferrari models', 'Lamborghini models', 'Porsche models', 'scale models', 'car collection India'],
   authors: [{ name: 'Wheels Frames' }],
   creator: 'Wheels Frames',
   publisher: 'Wheels Frames',

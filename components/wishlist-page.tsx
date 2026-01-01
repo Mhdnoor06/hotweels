@@ -59,7 +59,7 @@ export function WishlistPage() {
               <Heart className="w-16 h-16 sm:w-20 sm:h-20 text-gray-200 mb-4 sm:mb-6" />
               <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 text-center">Your wishlist is empty</h3>
               <p className="text-sm sm:text-base text-gray-500 mb-6 sm:mb-8 text-center max-w-md">
-                Save your favorite Wheels Frams cars here to keep track of what you want
+                Save your favorite Wheels Frames die-cast models here to keep track of what you want
               </p>
               <Link href="/collection">
                 <Button className="bg-red-500 hover:bg-red-600 flex items-center gap-2 text-sm sm:text-base">

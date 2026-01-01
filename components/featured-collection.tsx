@@ -81,7 +81,7 @@ export default function FeaturedCollection() {
             THE GARAGE
           </h2>
           <p className="text-gray-600 text-sm sm:text-base mt-3 sm:mt-4 max-w-md mx-auto px-4">
-            Explore our handpicked collection of legendary Wheels Frams models
+            Explore our handpicked collection of legendary Wheels Frames die-cast models
           </p>
         </motion.div>
 

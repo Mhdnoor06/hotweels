@@ -98,10 +98,10 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
             {/* Logo - Left side for all pages except homepage */}
             {!isHomePage && (
               <Link href="/" className="flex items-center">
-                <Image 
-                  src="/darklogo.jpg" 
-                  alt="Wheels Frams" 
-                  width={120} 
+                <Image
+                  src="/darklogo.jpg"
+                  alt="Wheels Frames Logo"
+                  width={120}
                   height={120}
                   className="h-10 w-auto object-contain rounded-full"
                   priority
@@ -161,7 +161,7 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
           <Link href="/" className="flex items-center justify-center">
             <Image 
               src="/darklogo.jpg"
-              alt="Wheels Frams" 
+              alt="Wheels Frames Logo" 
               width={120} 
               height={120}
               className="h-10 w-auto object-contain rounded-full"
@@ -334,7 +334,7 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
                 <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
                   <Image 
                     src="/darklogo.jpg" 
-                    alt="Wheels Frams" 
+                    alt="Wheels Frames Logo" 
                     width={120} 
                     height={120}
                     className="h-10 w-auto object-contain rounded-full"
