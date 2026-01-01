@@ -81,48 +81,22 @@ export async function notifyNewOrder(order: {
   }
 }): Promise<boolean> {
   const shortOrderId = order.id.slice(0, 8).toUpperCase()
+  const location = [order.shippingAddress.city, order.shippingAddress.state]
+    .filter(Boolean)
+    .join(', ') || 'N/A'
+  const payment = order.paymentMethod === 'cod' ? 'COD' : 'Online'
 
   const embed: DiscordEmbed = {
-    title: '🛒 New Order Placed!',
-    description: `Order **#${shortOrderId}** has been placed`,
-    color: 0x22c55e, // Green
-    fields: [
-      {
-        name: '👤 Customer',
-        value: order.customerName || 'Unknown',
-        inline: true,
-      },
-      {
-        name: '📧 Email',
-        value: order.customerEmail || 'N/A',
-        inline: true,
-      },
-      {
-        name: '💰 Total',
-        value: `₹${order.total.toLocaleString('en-IN')}`,
-        inline: true,
-      },
-      {
-        name: '📦 Items',
-        value: `${order.itemCount} item(s)`,
-        inline: true,
-      },
-      {
-        name: '💳 Payment',
-        value: order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment',
-        inline: true,
-      },
-      {
-        name: '📍 Location',
-        value: [order.shippingAddress.city, order.shippingAddress.state, order.shippingAddress.pincode]
-          .filter(Boolean)
-          .join(', ') || 'N/A',
-        inline: true,
-      },
-    ],
-    footer: {
-      text: 'Wheels Frames',
-    },
+    title: `New Order #${shortOrderId}`,
+    color: 0x22c55e,
+    description: [
+      `**${order.customerName || 'Customer'}** placed an order`,
+      ``,
+      `Amount: **₹${order.total.toLocaleString('en-IN')}** (${order.itemCount} items)`,
+      `Payment: ${payment}`,
+      `Location: ${location}`,
+      `Email: ${order.customerEmail || 'N/A'}`,
+    ].join('\n'),
     timestamp: new Date().toISOString(),
   }
 
@@ -137,30 +111,17 @@ export async function notifyNewSignup(user: {
   name?: string
   provider?: string
 }): Promise<boolean> {
+  const provider = user.provider || 'Email'
+  const name = user.name || 'New user'
+
   const embed: DiscordEmbed = {
-    title: '🎉 New User Signup!',
-    description: `A new user has joined Wheels Frames`,
-    color: 0x3b82f6, // Blue
-    fields: [
-      {
-        name: '👤 Name',
-        value: user.name || 'Not provided',
-        inline: true,
-      },
-      {
-        name: '📧 Email',
-        value: user.email,
-        inline: true,
-      },
-      {
-        name: '🔐 Method',
-        value: user.provider || 'Email/Password',
-        inline: true,
-      },
-    ],
-    footer: {
-      text: 'Wheels Frames',
-    },
+    title: 'New Signup',
+    color: 0x3b82f6,
+    description: [
+      `**${name}** signed up via ${provider}`,
+      ``,
+      `Email: ${user.email}`,
+    ].join('\n'),
     timestamp: new Date().toISOString(),
   }
 
@@ -175,17 +136,12 @@ export async function notifyDiscord(
   title: string,
   description: string,
   color: number = 0x6b7280,
-  fields?: DiscordEmbed['fields'],
   channel: 'orders' | 'signups' = 'orders'
 ): Promise<boolean> {
   const embed: DiscordEmbed = {
     title,
     description,
     color,
-    fields,
-    footer: {
-      text: 'Wheels Frames',
-    },
     timestamp: new Date().toISOString(),
   }
 
