@@ -3,6 +3,7 @@ import { createOrder, getUserOrders, type CreateOrderInput } from '@/lib/supabas
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { createNotification } from '@/lib/notifications'
+import { notifyNewOrder } from '@/lib/discord'
 
 // Helper to get user from Authorization header
 async function getUserFromRequest(request: Request) {
@@ -126,6 +127,21 @@ export async function POST(request: Request) {
         total: order.total,
       },
     })
+
+    // Send Discord notification (non-blocking)
+    notifyNewOrder({
+      id: order.id,
+      total: order.total,
+      itemCount: items.length,
+      customerName: user.user_metadata?.full_name || shipping_address?.fullName || 'Unknown',
+      customerEmail: user.email || '',
+      paymentMethod: payment_method || 'cod',
+      shippingAddress: {
+        city: shipping_address?.city,
+        state: shipping_address?.state,
+        pincode: shipping_address?.pincode,
+      },
+    }).catch(err => console.error('Discord notification failed:', err))
 
     return NextResponse.json({
       success: true,

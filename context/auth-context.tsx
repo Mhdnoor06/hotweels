@@ -70,6 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: "An account with this email already exists. Please login or reset your password." }
     }
 
+    // Send signup notification to Discord (non-blocking)
+    fetch('/api/auth/signup-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, provider: 'Email/Password' }),
+    }).catch(() => {}) // Silently fail
+
     return { error: null }
   }
 
