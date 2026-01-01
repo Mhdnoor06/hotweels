@@ -6,7 +6,17 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/api/', '/cart', '/checkout', '/wishlist', '/orders', '/sitemap.xml', '/robots.txt'],
+        disallow: [
+          '/admin',
+          '/api/',
+          '/cart',
+          '/checkout',
+          '/wishlist',
+          '/orders',
+          '/account',
+          '/reset-password',
+          '/forgot-password',
+        ],
       },
     ],
     sitemap: 'https://wheelsframes.com/sitemap.xml',
