@@ -32,15 +32,15 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json()
 
-      if (response.ok && data.authenticated && data.user) {
+      if (data.authenticated && data.user) {
         setUser(data.user)
         return true
       } else {
         setUser(null)
         return false
       }
-    } catch (error) {
-      console.error('Auth check error:', error)
+    } catch {
+      // Silently fail - user is not authenticated
       setUser(null)
       return false
     }

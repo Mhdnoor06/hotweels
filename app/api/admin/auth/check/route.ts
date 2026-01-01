@@ -6,19 +6,13 @@ export async function GET(request: NextRequest) {
     const token = getTokenFromCookies(request)
 
     if (!token) {
-      return NextResponse.json(
-        { authenticated: false },
-        { status: 401 }
-      )
+      return NextResponse.json({ authenticated: false })
     }
 
     const verification = await verifyAdminToken(token)
 
     if (!verification.isAdmin) {
-      return NextResponse.json(
-        { authenticated: false },
-        { status: 401 }
-      )
+      return NextResponse.json({ authenticated: false })
     }
 
     return NextResponse.json({
@@ -27,10 +21,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error checking admin auth:', error)
-    return NextResponse.json(
-      { authenticated: false },
-      { status: 500 }
-    )
+    return NextResponse.json({ authenticated: false })
   }
 }
 
@@ -40,19 +31,13 @@ export async function POST(request: NextRequest) {
     const token = getTokenFromCookies(request)
 
     if (!token) {
-      return NextResponse.json(
-        { authenticated: false },
-        { status: 401 }
-      )
+      return NextResponse.json({ authenticated: false })
     }
 
     const verification = await verifyAdminToken(token)
 
     if (!verification.isAdmin) {
-      return NextResponse.json(
-        { authenticated: false },
-        { status: 401 }
-      )
+      return NextResponse.json({ authenticated: false })
     }
 
     return NextResponse.json({
@@ -63,10 +48,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error getting session:', error)
-    return NextResponse.json(
-      { authenticated: false },
-      { status: 500 }
-    )
+    return NextResponse.json({ authenticated: false })
   }
 }
 
