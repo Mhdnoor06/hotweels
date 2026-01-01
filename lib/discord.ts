@@ -3,9 +3,14 @@
  * Sends notifications to Discord when orders are placed or users sign up
  */
 
-// Separate webhook URLs for different channels
-const DISCORD_ORDERS_WEBHOOK_URL = process.env.DISCORD_ORDERS_WEBHOOK_URL
-const DISCORD_SIGNUPS_WEBHOOK_URL = process.env.DISCORD_SIGNUPS_WEBHOOK_URL
+// Get webhook URLs at runtime (not module load time) for Edge compatibility
+function getOrdersWebhookUrl() {
+  return process.env.DISCORD_ORDERS_WEBHOOK_URL
+}
+
+function getSignupsWebhookUrl() {
+  return process.env.DISCORD_SIGNUPS_WEBHOOK_URL
+}
 
 interface DiscordEmbed {
   title: string
@@ -28,12 +33,15 @@ interface DiscordMessage {
 }
 
 async function sendDiscordMessage(webhookUrl: string | undefined, message: DiscordMessage): Promise<boolean> {
+  console.log('Discord: Attempting to send message, webhook URL exists:', !!webhookUrl)
+
   if (!webhookUrl) {
-    console.warn('Discord webhook URL not configured')
+    console.warn('Discord webhook URL not configured - check environment variables')
     return false
   }
 
   try {
+    console.log('Discord: Sending to webhook...')
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
@@ -43,10 +51,12 @@ async function sendDiscordMessage(webhookUrl: string | undefined, message: Disco
     })
 
     if (!response.ok) {
-      console.error('Discord webhook failed:', response.status, await response.text())
+      const errorText = await response.text()
+      console.error('Discord webhook failed:', response.status, errorText)
       return false
     }
 
+    console.log('Discord: Message sent successfully')
     return true
   } catch (error) {
     console.error('Error sending Discord message:', error)
@@ -116,7 +126,7 @@ export async function notifyNewOrder(order: {
     timestamp: new Date().toISOString(),
   }
 
-  return sendDiscordMessage(DISCORD_ORDERS_WEBHOOK_URL, { embeds: [embed] })
+  return sendDiscordMessage(getOrdersWebhookUrl(), { embeds: [embed] })
 }
 
 /**
@@ -154,7 +164,7 @@ export async function notifyNewSignup(user: {
     timestamp: new Date().toISOString(),
   }
 
-  return sendDiscordMessage(DISCORD_SIGNUPS_WEBHOOK_URL, { embeds: [embed] })
+  return sendDiscordMessage(getSignupsWebhookUrl(), { embeds: [embed] })
 }
 
 /**
@@ -179,6 +189,6 @@ export async function notifyDiscord(
     timestamp: new Date().toISOString(),
   }
 
-  const webhookUrl = channel === 'signups' ? DISCORD_SIGNUPS_WEBHOOK_URL : DISCORD_ORDERS_WEBHOOK_URL
+  const webhookUrl = channel === 'signups' ? getSignupsWebhookUrl() : getOrdersWebhookUrl()
   return sendDiscordMessage(webhookUrl, { embeds: [embed] })
 }

@@ -36,6 +36,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session)
         setUser(session?.user ?? null)
         setIsLoading(false)
+
+        // Detect new Google OAuth signups
+        // SIGNED_IN event fires when user authenticates via OAuth
+        if (event === 'SIGNED_IN' && session?.user) {
+          const user = session.user
+          const provider = user.app_metadata?.provider
+
+          // Only handle Google OAuth (email signups are handled separately)
+          if (provider === 'google') {
+            // Check if this is a new user (created within last 2 minutes)
+            const createdAt = new Date(user.created_at)
+            const now = new Date()
+            const timeDiff = now.getTime() - createdAt.getTime()
+            const isNewUser = timeDiff < 120000 // 2 minutes
+
+            // Prevent duplicate notifications on page refresh
+            const notificationKey = `google_signup_notified_${user.id}`
+            const alreadyNotified = sessionStorage.getItem(notificationKey)
+
+            if (isNewUser && !alreadyNotified) {
+              // Mark as notified immediately to prevent duplicates
+              sessionStorage.setItem(notificationKey, 'true')
+
+              // Send Discord notification for new Google signup
+              fetch('/api/auth/signup-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: user.email || '',
+                  name: user.user_metadata?.full_name || user.user_metadata?.name,
+                  provider: 'Google',
+                }),
+              }).catch(() => {}) // Silently fail
+            }
+          }
+        }
       }
     )
 
