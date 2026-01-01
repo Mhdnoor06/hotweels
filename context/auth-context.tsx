@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ? `${window.location.origin}/login`
       : undefined
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -63,6 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       return { error: error.message }
+    }
+
+    // Check if user already exists (Supabase returns empty identities array for existing users)
+    if (data?.user?.identities?.length === 0) {
+      return { error: "An account with this email already exists. Please login or reset your password." }
     }
 
     return { error: null }

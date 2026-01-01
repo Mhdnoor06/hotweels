@@ -260,6 +260,14 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
                             <p className="text-xs text-gray-500 truncate">{user.email}</p>
                           </div>
                           <Link
+                            href="/account"
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <User className="h-4 w-4" />
+                            Account Settings
+                          </Link>
+                          <Link
                             href="/orders"
                             className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             onClick={() => setShowUserMenu(false)}
@@ -444,6 +452,14 @@ export function Navbar({ variant = "default", showBack = false, backHref = "/" }
                           </p>
                           <p className="text-xs text-gray-500 truncate">{user.email}</p>
                         </div>
+                        <Link
+                          href="/account"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <User className="h-5 w-5" />
+                          <span>Account Settings</span>
+                        </Link>
                         <button
                           onClick={() => {
                             signOut()
