@@ -18,6 +18,8 @@ import {
   Loader2,
   Check,
   Zap,
+  Search,
+  X,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { getProducts, type ProductFilters } from "@/lib/supabase/products"
@@ -26,17 +28,13 @@ import { Navbar } from "@/components/navbar"
 import { MobileCartBar } from "@/components/mobile-cart-bar"
 import { useCart } from "@/context/cart-context"
 import { useWishlist } from "@/context/wishlist-context"
+import { useDebounce } from "@/hooks/use-debounce"
 
 const series = [
   "All Series",
-  "HW Dream Garage",
-  "HW Legends",
-  "HW Originals",
-  "HW Muscle Mania",
-  "HW Classics",
-  "HW Exotics",
-  "HW Green Speed",
-  "HW J-Imports",
+  "CCA",
+  "Die Cast",
+  "Hot Wheels",
 ]
 const sortOptions = ["Featured", "Price: Low to High", "Price: High to Low", "Newest", "Name: A-Z"]
 
@@ -53,6 +51,8 @@ export default function CollectionPage() {
   const [filters, setFilters] = useState({
     series: "All Series",
   })
+  const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearch = useDebounce(searchQuery, 300)
   const [sortBy, setSortBy] = useState("Featured")
   const [viewMode, setViewMode] = useState<"grid" | "compact">("grid")
   const [currentPage, setCurrentPage] = useState(1)
@@ -81,6 +81,7 @@ export default function CollectionPage() {
         const data = await getProducts({
           series: filters.series,
           sortBy: sortMap[sortBy],
+          search: debouncedSearch,
         })
 
         setProducts(data)
@@ -93,7 +94,12 @@ export default function CollectionPage() {
     }
 
     fetchProducts()
-  }, [filters, sortBy])
+  }, [filters, sortBy, debouncedSearch])
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearch])
 
   // Paginate products
   const filteredProducts = products
@@ -114,6 +120,37 @@ export default function CollectionPage() {
           <ChevronRight size={14} className="text-gray-400" />
           <span className="text-gray-900 font-medium">Collection</span>
         </nav>
+
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <div className="relative max-w-xl">
+            <Search
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search cars by name, series, or color..."
+              className="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          {debouncedSearch && (
+            <p className="text-sm text-gray-500 mt-2">
+              {loading ? "Searching..." : `Found ${filteredProducts.length} result${filteredProducts.length !== 1 ? 's' : ''} for "${debouncedSearch}"`}
+            </p>
+          )}
+        </div>
 
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
@@ -204,15 +241,20 @@ export default function CollectionPage() {
           </div>
         ) : paginatedProducts.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-500">No cars found</p>
+            <Search size={48} className="mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500 text-lg">
+              {debouncedSearch ? `No cars found for "${debouncedSearch}"` : "No cars found"}
+            </p>
+            <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
             <button
               onClick={() => {
                 setFilters({ series: "All Series" })
+                setSearchQuery("")
                 setCurrentPage(1)
               }}
-              className="mt-3 text-sm text-red-600 hover:text-red-700"
+              className="mt-4 px-4 py-2 text-sm text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
             >
-              Clear filters
+              Clear all filters
             </button>
           </div>
         ) : (

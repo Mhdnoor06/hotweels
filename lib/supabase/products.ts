@@ -4,6 +4,7 @@ import type { Product } from './database.types'
 export type ProductFilters = {
   series?: string
   sortBy?: 'featured' | 'price_asc' | 'price_desc' | 'newest' | 'name'
+  search?: string
 }
 
 export async function getProducts(filters?: ProductFilters): Promise<Product[]> {
@@ -14,6 +15,12 @@ export async function getProducts(filters?: ProductFilters): Promise<Product[]> 
   // Apply filters
   if (filters?.series && filters.series !== 'All Series') {
     query = query.eq('series', filters.series)
+  }
+
+  // Apply search - searches across name, series, and color (case-insensitive)
+  if (filters?.search && filters.search.trim()) {
+    const searchTerm = filters.search.trim()
+    query = query.or(`name.ilike.%${searchTerm}%,series.ilike.%${searchTerm}%,color.ilike.%${searchTerm}%`)
   }
 
   // Apply sorting

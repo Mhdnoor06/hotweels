@@ -106,7 +106,8 @@ export function ProductSchema({ product, reviews }: { product: Product; reviews?
     },
   }
 
-  // Always include aggregateRating (required by Google)
+  // Only include aggregateRating when there are actual reviews
+  // Google doesn't accept empty/zero values for these fields
   if (reviews && reviews.length > 0) {
     const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     schema.aggregateRating = {
@@ -116,19 +117,8 @@ export function ProductSchema({ product, reviews }: { product: Product; reviews?
       bestRating: 5,
       worstRating: 1,
     }
-  } else {
-    // Include empty/default aggregateRating when no reviews exist
-    schema.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: '0',
-      reviewCount: 0,
-      bestRating: 5,
-      worstRating: 1,
-    }
-  }
 
-  // Always include review array (required by Google)
-  if (reviews && reviews.length > 0) {
+    // Only include reviews when they exist
     schema.review = reviews.slice(0, 5).map(r => ({
       '@type': 'Review',
       author: { '@type': 'Person', name: r.author_name },
@@ -141,9 +131,6 @@ export function ProductSchema({ product, reviews }: { product: Product; reviews?
       },
       reviewBody: r.comment,
     }))
-  } else {
-    // Include empty review array when no reviews exist
-    schema.review = []
   }
 
   return (
